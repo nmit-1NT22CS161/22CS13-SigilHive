@@ -220,7 +220,9 @@ jobs:
           fi
 
       - name: Deploy Honeypots
-        run: kubectl apply -f k8s/honeypots/ -n ${{ env.NAMESPACE }}
+        run: |
+          kubectl delete job sequential-attacker -n ${{ env.NAMESPACE }} --ignore-not-found
+          kubectl apply -f k8s/honeypots/ -n ${{ env.NAMESPACE }}
 
       - name: Deploy Monitoring
         run: kubectl apply -f k8s/monitoring/ -n ${{ env.NAMESPACE }}
