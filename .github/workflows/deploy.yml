@@ -201,6 +201,9 @@ jobs:
       - name: Deploy Kafka
         run: kubectl apply -f k8s/kafka/ -n ${{ env.NAMESPACE }}
 
+      - name: Restart Kafka StatefulSet
+        run: kubectl rollout restart statefulset/kafka -n ${{ env.NAMESPACE }}
+
       - name: Wait for Kafka to be Ready
         run: |
           set -e
