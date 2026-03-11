@@ -667,7 +667,9 @@ class ShopHubDBController:
 
         # 3. Select and execute action
         rl_action = None
-        if self.rl_enabled and event.get("query", "").upper().startswith(("SHOW", "SELECT")):
+        if self.rl_enabled and event.get("query", "").upper().startswith(
+            ("SHOW", "SELECT")
+        ):
             # For read queries, always use realistic response (no RL)
             response = await self._original_query_handler(session_id, event)
         elif self.rl_enabled:
@@ -781,7 +783,9 @@ class ShopHubDBController:
         elif action == "RESPONSE_DELAY":
             # Add delay then return realistic response
             response = await self._original_query_handler(session_id, event)
-            response["delay"] = response.get("delay", 0.0) + float(np.random.uniform(0.5, 2.0))
+            response["delay"] = response.get("delay", 0.0) + float(
+                np.random.uniform(0.5, 2.0)
+            )
             return response
 
         elif action == "MISLEADING_SUCCESS":
@@ -839,4 +843,5 @@ class ShopHubDBController:
                 "disconnect": True,
             }
 
+        # Fallback to realistic response
         return await self._original_query_handler(session_id, event)
