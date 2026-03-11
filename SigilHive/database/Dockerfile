@@ -1,18 +1,7 @@
-FROM python:3.11-slim
+FROM mysql:8.0.36
 
-WORKDIR /app
+# Seed a realistic ShopHub schema so standard MySQL clients work without any
+# custom protocol emulation.
+COPY database/mysql-init/ /docker-entrypoint-initdb.d/
 
-ENV PYTHONPATH=/app
-
-COPY database/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY database/ .
-COPY rl_core ./rl_core
-COPY kafka_manager.py .
-COPY file_structure.py .
-
-ENV PORT=2224
-EXPOSE 2224
-
-CMD ["python", "-u", "database_honeypot.py"]
+EXPOSE 3306

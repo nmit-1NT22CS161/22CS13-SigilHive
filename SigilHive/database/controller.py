@@ -177,7 +177,48 @@ class ShopHubDBController:
 
         self.rl_agent = shared_rl_agent
         self.rl_enabled = os.getenv("RL_ENABLED", "true").lower() == "true"
+        self.prefer_llm_content = (
+            os.getenv("DB_LLM_DRIVEN_CONTENT", "true").lower() == "true"
+        )
         print(f"[DBController] RL enabled: {self.rl_enabled}")
+        print(f"[DBController] LLM-driven content preferred: {self.prefer_llm_content}")
+
+    async def _generate_llm_read_response(
+        self,
+        session_id: str,
+        query: str,
+        intent: str,
+        fallback_response: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Use the LLM as the primary source for read content and fallback to local state."""
+        try:
+            print(f"[DBController] LLM-first response for query: {query}")
+            llm_raw = await generate_db_response_async(
+                query=query,
+                intent=intent,
+                db_context=self.db_state.get_state_summary(),
+            )
+
+            if isinstance(llm_raw, str):
+                json_data = extract_json_from_text(llm_raw)
+                response = json_data if json_data else {"text": llm_raw}
+            elif isinstance(llm_raw, dict):
+                response = llm_raw
+            else:
+                response = {"text": str(llm_raw)}
+
+            if isinstance(response, dict) and "columns" in response and "rows" in response:
+                return await self._finalize_query(
+                    session_id, query, intent, response, 0.1
+                )
+
+            print("[DBController] LLM read response was not tabular, using fallback")
+        except Exception as e:
+            print(f"[DBController] LLM-first read error: {e}")
+
+        return await self._finalize_query(
+            session_id, query, intent, fallback_response, 0.0
+        )
 
     def _get_session(self, session_id: str) -> Dict[str, Any]:
         if session_id not in self.sessions:
@@ -423,9 +464,6 @@ class ShopHubDBController:
         query = event.get("query", "")
         intent = self._classify_query(query)
 
-        # ------------------------
-        # STATE-CHANGING QUERIES
-        # ------------------------
         if intent in [
             "create_db",
             "drop_db",
@@ -443,9 +481,6 @@ class ShopHubDBController:
                 0.05,
             )
 
-        # ------------------------
-        # DESCRIBE TABLE
-        # ------------------------
         if intent == "describe":
             table_name = self._parse_describe(query)
             if table_name:
@@ -455,28 +490,26 @@ class ShopHubDBController:
                     )
 
                 table_info = self.db_state.get_table_data(table_name)
-
                 if table_info and "column_defs" in table_info:
-                    response = {
+                    fallback_response = {
                         "columns": ["Field", "Type", "Null", "Key", "Default", "Extra"],
                         "rows": table_info["column_defs"],
                     }
+                    if self.prefer_llm_content:
+                        return await self._generate_llm_read_response(
+                            session_id, query, intent, fallback_response
+                        )
                     return await self._finalize_query(
-                        session_id, query, intent, response, 0.0
+                        session_id, query, intent, fallback_response, 0.0
                     )
 
-                # Unknown table
                 db = self.db_state.current_db or "shophub"
                 err = f"ERROR 1146 (42S02): Table '{db}.{table_name}' doesn't exist"
                 return await self._finalize_query(session_id, query, intent, err, 0.0)
 
-        # ------------------------
-        # READ QUERIES
-        # ------------------------
         if intent == "read":
             q_upper = query.upper()
 
-            # SHOW DATABASES
             if "SHOW DATABASES" in q_upper or "SHOW SCHEMAS" in q_upper:
                 response = {
                     "columns": ["Database"],
@@ -486,34 +519,29 @@ class ShopHubDBController:
                     session_id, query, intent, response, 0.0
                 )
 
-            # SELECT DATABASE()
             if "DATABASE()" in q_upper or "SCHEMA()" in q_upper:
-                current = self.db_state.current_db
                 response = {
                     "columns": ["DATABASE()"],
-                    "rows": [[current]],
+                    "rows": [[self.db_state.current_db]],
                 }
                 return await self._finalize_query(
                     session_id, query, intent, response, 0.0
                 )
 
-            # SHOW TABLES
             if "SHOW TABLES" in q_upper:
                 if not self.db_state.current_db:
                     return await self._finalize_query(
                         session_id, query, intent, self.NO_DB_ERROR, 0.0
                     )
-                tables = self.db_state.list_tables()
-                colname = f"Tables_in_{self.db_state.current_db}"
+
                 response = {
-                    "columns": [colname],
-                    "rows": [[t] for t in tables],
+                    "columns": [f"Tables_in_{self.db_state.current_db}"],
+                    "rows": [[t] for t in self.db_state.list_tables()],
                 }
                 return await self._finalize_query(
                     session_id, query, intent, response, 0.0
                 )
 
-            # SELECT ... FROM table
             table_name = self._parse_select(query)
             if table_name:
                 if not self.db_state.current_db:
@@ -523,105 +551,41 @@ class ShopHubDBController:
 
                 table_info = self.db_state.get_table_data(table_name)
                 if table_info:
-                    columns = table_info.get("columns", [])
                     rows = table_info.get("rows", [])
-
-                    # If table has fewer than 5 rows → use LLM to generate synthetic data
-                    if len(rows) < 5:
-                        try:
-                            print(f"[DBController] Calling LLM for table: {table_name}")
-                            db_context = self.db_state.get_state_summary()
-                            llm_raw = await generate_db_response_async(
-                                query=query,
-                                intent=intent,
-                                db_context=db_context,
-                            )
-
-                            print(
-                                f"[DBController] LLM raw response type: {type(llm_raw)}"
-                            )
-                            print(
-                                f"[DBController] LLM raw response: {llm_raw[:500] if isinstance(llm_raw, str) else llm_raw}"
-                            )
-
-                            # Try to extract JSON from the response
-                            if isinstance(llm_raw, str):
-                                json_data = extract_json_from_text(llm_raw)
-                                if json_data:
-                                    print("[DBController] Extracted JSON successfully")
-                                    response = json_data
-                                else:
-                                    print(
-                                        "[DBController] Failed to extract JSON, wrapping as text"
-                                    )
-                                    response = {
-                                        "columns": ["result"],
-                                        "rows": [[llm_raw]],
-                                    }
-                            elif isinstance(llm_raw, dict):
-                                response = llm_raw
-                            else:
-                                response = {
-                                    "columns": ["result"],
-                                    "rows": [[str(llm_raw)]],
-                                }
-
-                            # Validate the response has proper structure
-                            if (
-                                not isinstance(response, dict)
-                                or "columns" not in response
-                                or "rows" not in response
-                            ):
-                                print(
-                                    "[DBController] Invalid response structure, using fallback"
-                                )
-                                response = {"columns": columns, "rows": []}
-
-                        except Exception as e:
-                            print(f"[DBController] LLM error: {e}")
-                            import traceback
-
-                            traceback.print_exc()
-                            response = {"columns": columns, "rows": []}
-
-                        return await self._finalize_query(
-                            session_id, query, intent, response, 0.1
-                        )
-
-                    # LIMIT support
                     limit_match = re.search(r"LIMIT\s+(\d+)", query, re.IGNORECASE)
                     if limit_match:
-                        limit = int(limit_match.group(1))
-                        rows = rows[:limit]
+                        rows = rows[: int(limit_match.group(1))]
 
-                    response = {"columns": columns, "rows": rows}
+                    fallback_response = {
+                        "columns": table_info.get("columns", []),
+                        "rows": rows,
+                    }
+
+                    if self.prefer_llm_content:
+                        return await self._generate_llm_read_response(
+                            session_id, query, intent, fallback_response
+                        )
 
                     return await self._finalize_query(
-                        session_id, query, intent, response, 0.0
+                        session_id, query, intent, fallback_response, 0.0
                     )
 
-                # Unknown table
                 db = self.db_state.current_db or "shophub"
                 err = f"ERROR 1146 (42S02): Table '{db}.{table_name}' doesn't exist"
                 return await self._finalize_query(session_id, query, intent, err, 0.0)
 
-        # ------------------------
-        # LLM FALLBACK
-        # ------------------------
         try:
             print(f"[DBController] LLM fallback for query: {query}")
-            db_context = self.db_state.get_state_summary()
             fallback_raw = await generate_db_response_async(
                 query=query,
                 intent=intent,
-                db_context=db_context,
+                db_context=self.db_state.get_state_summary(),
             )
 
             print(
                 f"[DBController] Fallback raw: {fallback_raw[:500] if isinstance(fallback_raw, str) else fallback_raw}"
             )
 
-            # Extract JSON if possible
             if isinstance(fallback_raw, str):
                 json_data = extract_json_from_text(fallback_raw)
                 fallback = json_data if json_data else {"text": fallback_raw}

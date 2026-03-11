@@ -203,49 +203,55 @@ spec:
       labels:
         app: db-honeypot
     spec:
-      initContainers:
-        - name: wait-for-kafka
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z kafka-svc 9092; do
-                echo "waiting for kafka-svc:9092..."
-                sleep 3
-              done
-              echo "Kafka is up!"
       containers:
         - name: db-honeypot
-          # Built from SigilHive/database/Dockerfile
+          # Built from SigilHive/database/Dockerfile.
+          # This now runs a real MySQL server seeded with decoy ShopHub data.
           image: IMAGE_REGISTRY/db_honeypot:IMAGE_TAG
           ports:
             - containerPort: 3306
               name: mysql
           env:
-            - name: MYSQL_PORT
-              value: "3306"
-            - name: KAFKA_BROKER
-              value: "kafka-svc:9092"
-            - name: REQUIRE_PASSWORD
-              value: "true"
-            - name: RL_ENABLED
-              value: "true"
-          envFrom:
-            - secretRef:
-                name: sigilhive-secrets
+            - name: MYSQL_ROOT_PASSWORD
+              value: "rootpass"
+            - name: MYSQL_DATABASE
+              value: "shophub"
+            - name: MYSQL_USER
+              value: "shophub_app"
+            - name: MYSQL_PASSWORD
+              value: "shophub123"
+            - name: MYSQL_ROOT_HOST
+              value: "%"
+          startupProbe:
+            tcpSocket:
+              port: 3306
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 3306
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources:
             requests:
               memory: "256Mi"
               cpu: "100m"
             limits:
-              memory: "512Mi"
-              cpu: "300m"
+              memory: "1Gi"
+              cpu: "500m"
           volumeMounts:
-            - name: db-cache
-              mountPath: /app/cache
+            - name: db-data
+              mountPath: /var/lib/mysql
       volumes:
-        - name: db-cache
+        - name: db-data
           emptyDir: {}
 ---
 apiVersion: v1
