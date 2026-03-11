@@ -839,5 +839,4 @@ class ShopHubDBController:
                 "disconnect": True,
             }
 
-        # Fallback to realistic response
         return await self._original_query_handler(session_id, event)
