@@ -97,6 +97,8 @@ spec:
               value: "CONTROLLER"
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
               value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
             # KRaft quorum voter — pod 0 of the StatefulSet
             - name: KAFKA_CONTROLLER_QUORUM_VOTERS
               value: "1@kafka-0.kafka.sigilhive.svc.cluster.local:9093"

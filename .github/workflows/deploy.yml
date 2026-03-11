@@ -203,8 +203,18 @@ jobs:
 
       - name: Wait for Kafka to be Ready
         run: |
-          kubectl rollout status statefulset/kafka \
-            -n ${{ env.NAMESPACE }} --timeout=300s
+          set -e
+          if ! kubectl rollout status statefulset/kafka \
+            -n ${{ env.NAMESPACE }} --timeout=600s; then
+            echo "Kafka rollout failed. Collecting diagnostics..."
+            kubectl get statefulset,pods,pvc -n ${{ env.NAMESPACE }} -l app=kafka -o wide || true
+            kubectl describe statefulset kafka -n ${{ env.NAMESPACE }} || true
+            kubectl describe pod kafka-0 -n ${{ env.NAMESPACE }} || true
+            kubectl logs kafka-0 -n ${{ env.NAMESPACE }} -c kafka --tail=200 || true
+            kubectl logs kafka-0 -n ${{ env.NAMESPACE }} -c fix-permissions --tail=200 || true
+            kubectl get events -n ${{ env.NAMESPACE }} --sort-by=.lastTimestamp | tail -n 50 || true
+            exit 1
+          fi
 
       - name: Deploy Honeypots
         run: kubectl apply -f k8s/honeypots/ -n ${{ env.NAMESPACE }}
