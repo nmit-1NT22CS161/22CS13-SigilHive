@@ -216,8 +216,5 @@ jobs:
           echo "════════════════════════════════════════"
           echo "  SigilHive Honeypot External Endpoints"
           echo "════════════════════════════════════════"
-          kubectl get svc -n ${{ env.NAMESPACE }} \
-            --field-selector spec.type=LoadBalancer \
-            -o custom-columns=\
-'NAME:.metadata.name,EXTERNAL-IP:.status.loadBalancer.ingress[0].ip,PORT:.spec.ports[*].port'
+          kubectl get svc -n ${{ env.NAMESPACE }} --field-selector spec.type=LoadBalancer -o wide
           echo "════════════════════════════════════════"
