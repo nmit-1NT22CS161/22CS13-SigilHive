@@ -56,16 +56,22 @@ jobs:
 
       # Keyless GCP auth — no JSON key stored in GitHub
       - name: Authenticate to Google Cloud (WIF)
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account:            ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          token_format:               access_token
 
       - name: Set up gcloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker → Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       # Use first 8 chars of commit SHA as the image tag
       - name: Compute image tag
