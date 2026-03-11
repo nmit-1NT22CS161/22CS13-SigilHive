@@ -184,7 +184,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ env.CLUSTER }}
-          location:     ${{ env.ZONE }}
+          location:     ${{ env.REGION }}
 
       # Replace IMAGE_TAG and IMAGE_REGISTRY placeholders in all manifests
       - name: Inject image tag into manifests
