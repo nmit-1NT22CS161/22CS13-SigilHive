@@ -225,13 +225,31 @@ jobs:
       - name: Deploy Monitoring
         run: kubectl apply -f k8s/monitoring/ -n ${{ env.NAMESPACE }}
 
+      - name: Restart application Deployments
+        run: |
+          kubectl rollout restart deployment/ssh-honeypot -n ${{ env.NAMESPACE }}
+          kubectl rollout restart deployment/http-honeypot -n ${{ env.NAMESPACE }}
+          kubectl rollout restart deployment/db-honeypot -n ${{ env.NAMESPACE }}
+          kubectl rollout restart deployment/grafana-connector -n ${{ env.NAMESPACE }}
+          kubectl rollout restart deployment/metrics-collector -n ${{ env.NAMESPACE }}
+
       - name: Wait for all Deployments
         run: |
+          set -e
           for dep in ssh-honeypot http-honeypot db-honeypot \
                      grafana-connector metrics-collector; do
             echo "Waiting for: $dep"
-            kubectl rollout status deployment/${dep} \
-              -n ${{ env.NAMESPACE }} --timeout=300s
+            if ! kubectl rollout status deployment/${dep} \
+              -n ${{ env.NAMESPACE }} --timeout=300s; then
+              echo "Deployment rollout failed for ${dep}. Collecting diagnostics..."
+              kubectl get deployment/${dep} -n ${{ env.NAMESPACE }} -o wide || true
+              kubectl describe deployment/${dep} -n ${{ env.NAMESPACE }} || true
+              kubectl get pods -n ${{ env.NAMESPACE }} -l app=${dep} -o wide || true
+              kubectl describe pods -n ${{ env.NAMESPACE }} -l app=${dep} || true
+              kubectl logs -n ${{ env.NAMESPACE }} -l app=${dep} --all-containers=true --tail=200 || true
+              kubectl get events -n ${{ env.NAMESPACE }} --sort-by=.lastTimestamp | tail -n 50 || true
+              exit 1
+            fi
           done
 
       - name: Print external LoadBalancer IPs
