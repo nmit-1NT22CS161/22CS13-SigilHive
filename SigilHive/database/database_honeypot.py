@@ -242,9 +242,11 @@ class MySQLProtocol(asyncio.Protocol):
                 self.send_packet(col_def, current_seq)
                 current_seq += 1
 
-            # --- EOF AFTER COLUMNS ---
-            self.send_result_terminator(current_seq)
-            current_seq += 1
+            # With CLIENT_DEPRECATE_EOF, clients expect no metadata terminator here.
+            # They only expect the final OK terminator after all rows.
+            if not (self.client_capabilities & CLIENT_DEPRECATE_EOF):
+                self.send_result_terminator(current_seq)
+                current_seq += 1
 
             # --- ROWS ---
             for row in rows:
