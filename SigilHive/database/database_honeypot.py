@@ -316,11 +316,11 @@ class MySQLProtocol(asyncio.Protocol):
         while True:
             try:
                 payload, seq = await asyncio.wait_for(
-                    self._packet_queue.get(), timeout=30.0
+                    self._packet_queue.get(), timeout=300.0
                 )
             except asyncio.TimeoutError:
                 print(f"[mysql][{self.session_id}] packet worker timeout")
-                break
+                continue
             except Exception as e:
                 print(f"[mysql][{self.session_id}] queue get error: {e}")
                 break
