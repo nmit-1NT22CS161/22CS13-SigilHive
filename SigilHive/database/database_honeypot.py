@@ -26,6 +26,30 @@ VALID_CREDENTIALS = {
 # ShopHub MySQL controller
 controller = ShopHubDBController()
 
+CLIENT_LONG_PASSWORD = 0x00000001
+CLIENT_LONG_FLAG = 0x00000004
+CLIENT_CONNECT_WITH_DB = 0x00000008
+CLIENT_PROTOCOL_41 = 0x00000200
+CLIENT_TRANSACTIONS = 0x00002000
+CLIENT_SECURE_CONNECTION = 0x00008000
+CLIENT_MULTI_RESULTS = 0x00020000
+CLIENT_PLUGIN_AUTH = 0x00080000
+CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA = 0x00200000
+CLIENT_DEPRECATE_EOF = 0x01000000
+
+SERVER_CAPABILITIES = (
+    CLIENT_LONG_PASSWORD
+    | CLIENT_LONG_FLAG
+    | CLIENT_CONNECT_WITH_DB
+    | CLIENT_PROTOCOL_41
+    | CLIENT_TRANSACTIONS
+    | CLIENT_SECURE_CONNECTION
+    | CLIENT_MULTI_RESULTS
+    | CLIENT_PLUGIN_AUTH
+    | CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
+    | CLIENT_DEPRECATE_EOF
+)
+
 
 class MySQLProtocol(asyncio.Protocol):
     """MySQL protocol implementation for ShopHub honeypot"""
@@ -43,6 +67,7 @@ class MySQLProtocol(asyncio.Protocol):
         self._packet_queue = asyncio.Queue()
         self._worker_task = None
         self._processing = False
+        self.client_capabilities = 0
 
     def connection_made(self, transport):
         self.transport = transport
@@ -63,10 +88,10 @@ class MySQLProtocol(asyncio.Protocol):
 
         filler = b"\x00"
         # Capability flags
-        capability_flags_1 = struct.pack("<H", 0xF7FF)
+        capability_flags_1 = struct.pack("<H", SERVER_CAPABILITIES & 0xFFFF)
         charset = struct.pack("B", 0x21)  # utf8_general_ci
         status_flags = struct.pack("<H", 0x0002)
-        capability_flags_2 = struct.pack("<H", 0x8000)  # CLIENT_PLUGIN_AUTH
+        capability_flags_2 = struct.pack("<H", (SERVER_CAPABILITIES >> 16) & 0xFFFF)
         auth_data_len = struct.pack("B", 21)
         reserved = b"\x00" * 10
         auth_plugin = b"mysql_native_password\x00"
@@ -141,6 +166,15 @@ class MySQLProtocol(asyncio.Protocol):
         )
         self.send_packet(payload, sequence_id)
 
+    def send_result_terminator(self, sequence_id=1):
+        """End a result set using the packet type negotiated by the client."""
+        if self.client_capabilities & CLIENT_DEPRECATE_EOF:
+            self.send_ok_packet(sequence_id)
+            return
+
+        eof_packet = b"\xfe" + struct.pack("<H", 0) + struct.pack("<H", 0x0002)
+        self.send_packet(eof_packet, sequence_id)
+
     def send_error_packet(self, error_code, sql_state, message, sequence_id=1):
         """Send ERR packet"""
         payload = (
@@ -209,8 +243,7 @@ class MySQLProtocol(asyncio.Protocol):
                 current_seq += 1
 
             # --- EOF AFTER COLUMNS ---
-            eof_packet = b"\xfe" + struct.pack("<H", 0) + struct.pack("<H", 0x0002)
-            self.send_packet(eof_packet, current_seq)
+            self.send_result_terminator(current_seq)
             current_seq += 1
 
             # --- ROWS ---
@@ -227,7 +260,7 @@ class MySQLProtocol(asyncio.Protocol):
                 current_seq += 1
 
             # --- FINAL EOF ---
-            self.send_packet(eof_packet, current_seq)
+            self.send_result_terminator(current_seq)
 
         except Exception as e:
             print(f"[mysql][{self.session_id}] Error in send_text_result: {e}")
@@ -384,6 +417,7 @@ class MySQLProtocol(asyncio.Protocol):
 
                 # Client capability flags (4 bytes)
                 capability_flags = struct.unpack("<I", payload[pos : pos + 4])[0]
+                self.client_capabilities = capability_flags
                 pos += 4
 
                 # max_packet (4), charset (1), reserved (23)
@@ -439,7 +473,7 @@ class MySQLProtocol(asyncio.Protocol):
                 )
 
                 # CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA
-                if capability_flags & 0x00200000:
+                if capability_flags & CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA:
                     print(f"[mysql][{self.session_id}] Using length-encoded auth data")
                     if auth_len_byte < 251:
                         auth_response_len = auth_len_byte
