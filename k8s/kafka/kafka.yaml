@@ -122,17 +122,19 @@ spec:
                 - kafka-broker-api-versions
                 - --bootstrap-server
                 - localhost:9092
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 5
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 10
           livenessProbe:
             exec:
               command:
                 - kafka-broker-api-versions
                 - --bootstrap-server
                 - localhost:9092
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
             periodSeconds: 20
+            timeoutSeconds: 10
             failureThreshold: 5
           resources:
             requests:
