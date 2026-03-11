@@ -118,25 +118,26 @@ spec:
               value: "3.8"
             - name: CLUSTER_ID
               value: "x9gFYThZTJKxsBZSl_Ds7Q"
+          startupProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
           readinessProbe:
-            exec:
-              command:
-                - kafka-broker-api-versions
-                - --bootstrap-server
-                - localhost:9092
-            initialDelaySeconds: 60
-            periodSeconds: 15
-            timeoutSeconds: 10
-            failureThreshold: 10
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
-            exec:
-              command:
-                - kafka-broker-api-versions
-                - --bootstrap-server
-                - localhost:9092
-            initialDelaySeconds: 90
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 15
             periodSeconds: 20
-            timeoutSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 5
           resources:
             requests:
