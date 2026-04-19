@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Literal, Optional, TypedDict
+from typing import Annotated, Optional, TypedDict
 
 # ── LangGraph / LangChain imports ────────────────────────────────────────────
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -65,6 +65,28 @@ for _noisy in (
     "google",
 ):
     logging.getLogger(_noisy).setLevel(logging.WARNING)
+
+
+DEFAULT_SCHEDULE_INTERVAL_SECONDS = 14 * 24 * 60 * 60
+
+
+def _format_interval(seconds: int) -> str:
+    if seconds < 60:
+        return f"{seconds}s"
+
+    days, remainder = divmod(seconds, 24 * 60 * 60)
+    hours, remainder = divmod(remainder, 60 * 60)
+    minutes, secs = divmod(remainder, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if secs:
+        parts.append(f"{secs}s")
+    return " ".join(parts)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -809,6 +831,45 @@ def _calculate_reward(state: AgentState) -> float:
     return round(score, 3)
 
 
+def _build_fallback_evaluation(state: AgentState, reward: float) -> str:
+    protocol_scores = {
+        "SSH": (state.get("ssh_recon_result") or {}).get("data_extracted", 0)
+        + (state.get("ssh_exploit_result") or {}).get("data_extracted", 0),
+        "HTTP": (state.get("http_recon_result") or {}).get("data_extracted", 0)
+        + (state.get("http_exploit_result") or {}).get("data_extracted", 0),
+        "DB": (state.get("db_recon_result") or {}).get("data_extracted", 0)
+        + (state.get("db_exploit_result") or {}).get("data_extracted", 0),
+    }
+    best_protocol = max(protocol_scores, key=protocol_scores.get)
+    suspicion = state.get("overall_suspicion", 0.0)
+    data_bytes = state.get("total_data_bytes", 0)
+
+    honeytokens = []
+    for key in (
+        "ssh_recon_result",
+        "ssh_exploit_result",
+        "http_recon_result",
+        "http_exploit_result",
+        "db_recon_result",
+        "db_exploit_result",
+    ):
+        result = state.get(key) or {}
+        if any(
+            "HONEYTOKEN" in str(response) for response in result.get("responses", [])
+        ):
+            honeytokens.append(key.replace("_result", ""))
+
+    honeytoken_summary = ", ".join(honeytokens) if honeytokens else "none detected"
+    should_evolve = "yes" if reward < 0 or suspicion > 0.7 else "no"
+
+    return (
+        "Fallback evaluation generated locally because the Gemini request failed. "
+        f"{best_protocol} yielded the most intelligence with {protocol_scores[best_protocol]} bytes extracted out of {data_bytes} total. "
+        f"Honeytoken indicators were observed in: {honeytoken_summary}. "
+        f"Overall suspicion was {suspicion:.2f}, reward was {reward:.2f}, and the filesystem evolution recommendation is {should_evolve}."
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Evolution Change Pool  (mirrors EvolutionDecisionEngine in original)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1340,14 +1401,20 @@ Be concise (4-6 sentences total)."""
 Attack plan was: {state.get("attack_plan", "N/A")}
 """
 
-    llm = _get_llm()
-    response = llm.invoke(
-        [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
-        ]
-    )
-    evaluation = response.content
+    try:
+        llm = _get_llm()
+        response = llm.invoke(
+            [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=user_prompt),
+            ]
+        )
+        evaluation = response.content
+    except Exception as exc:
+        log.warning(
+            f"  Gemini evaluation failed; using local fallback summary instead: {exc}"
+        )
+        evaluation = _build_fallback_evaluation(state, reward)
 
     log.info(f"  Reward score: {reward}")
     log.info(f"  Gemini evaluation:\n    {evaluation[:300]}…")
@@ -2480,8 +2547,13 @@ def main():
     parser.add_argument(
         "--schedule-interval",
         type=int,
-        default=int(os.getenv("SCHEDULE_INTERVAL_SECONDS", "300")),
-        help="Seconds between scheduled runs (default: 300 = 5 minutes)."
+        default=int(
+            os.getenv(
+                "SCHEDULE_INTERVAL_SECONDS", str(DEFAULT_SCHEDULE_INTERVAL_SECONDS)
+            )
+        ),
+        help="Seconds between scheduled runs"
+        f" (default: {DEFAULT_SCHEDULE_INTERVAL_SECONDS} = 14 days / 2 weeks)."
         " Set to 0 to run once and exit.",
     )
     args = parser.parse_args()
@@ -2513,7 +2585,6 @@ def main():
     run_number = 0
     while True:
         run_number += 1
-        root_log.info(f"")
         root_log.info(f"{'═' * 72}")
         root_log.info(f"  SCHEDULED RUN #{run_number}  (every {interval}s)")
         root_log.info(f"{'═' * 72}")

@@ -7,14 +7,23 @@ Uses Grafana MCP API to create dashboards, alerts, and manage incidents
 import os
 import json
 import sys
-from datetime import datetime, timedelta
 
-# Grafana Configuration
-GRAFANA_API_KEY = "glc_eyJvIjoiMTU5OTMxMSIsIm4iOiJzdGFjay0xNDQ5MDczLWludGVncmF0aW9uLWdyYWZhbmFfbWNwIiwiayI6Img1SlhGdzYxZG84cjY4SUtBRjlpMmoyOSIsIm0iOnsiciI6InByb2QtYXAtc291dGgtMSJ9fQ=="
-GRAFANA_URL = "https://sigilhive.grafana.net/api"
-LOKI_URL = 'https://logs-prod-028.grafana.net'
-PROMETHEUS_URL = 'https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom'
+# FIX 5: read credentials from environment — never hardcode in source.
+# Set these in .env (which is in .gitignore) or as Kubernetes Secrets.
+GRAFANA_API_KEY = os.environ.get("GRAFANA_API_KEY")
+if not GRAFANA_API_KEY:
+    print(
+        "ERROR: GRAFANA_API_KEY environment variable not set.\\n"
+        "Add it to SigilHive/.env or export it before running this script.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
+GRAFANA_URL = os.environ.get("GRAFANA_URL", "https://sigilhive.grafana.net/api")
+LOKI_URL = os.environ.get("LOKI_URL", "https://logs-prod-028.grafana.net")
+PROMETHEUS_URL = os.environ.get(
+    "PROMETHEUS_URL", "https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom"
+)
 print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║  🚀 SigilHive Grafana Automation Pipeline                    ║
@@ -36,34 +45,21 @@ dashboard_config = {
         "schemaVersion": 38,
         "version": 0,
         "refresh": "30s",
-        "time": {
-            "from": "now-6h",
-            "to": "now"
-        },
+        "time": {"from": "now-6h", "to": "now"},
         "panels": [
             {
                 "id": 1,
                 "title": "🔴 Attack Events (Loki)",
                 "type": "logs",
                 "gridPos": {"x": 0, "y": 0, "w": 24, "h": 8},
-                "targets": [
-                    {
-                        "expr": "{job=\"honeypot\"}",
-                        "refId": "A"
-                    }
-                ]
+                "targets": [{"expr": '{job="honeypot"}', "refId": "A"}],
             },
             {
                 "id": 2,
                 "title": "📊 HTTP Attack Activity",
                 "type": "logs",
                 "gridPos": {"x": 0, "y": 8, "w": 12, "h": 6},
-                "targets": [
-                    {
-                        "expr": "{job=\"honeypot\", service=\"http\"}",
-                        "refId": "A"
-                    }
-                ]
+                "targets": [{"expr": '{job="honeypot", service="http"}', "refId": "A"}],
             },
             {
                 "id": 3,
@@ -71,25 +67,17 @@ dashboard_config = {
                 "type": "logs",
                 "gridPos": {"x": 12, "y": 8, "w": 12, "h": 6},
                 "targets": [
-                    {
-                        "expr": "{job=\"honeypot\", service=\"database\"}",
-                        "refId": "A"
-                    }
-                ]
+                    {"expr": '{job="honeypot", service="database"}', "refId": "A"}
+                ],
             },
             {
                 "id": 4,
                 "title": "🔐 SSH Activity",
                 "type": "logs",
                 "gridPos": {"x": 0, "y": 14, "w": 24, "h": 6},
-                "targets": [
-                    {
-                        "expr": "{job=\"honeypot\", service=\"ssh\"}",
-                        "refId": "A"
-                    }
-                ]
-            }
-        ]
+                "targets": [{"expr": '{job="honeypot", service="ssh"}', "refId": "A"}],
+            },
+        ],
     }
 }
 
@@ -101,28 +89,28 @@ print(f"  - Panels: {len(dashboard_config['dashboard']['panels'])}")
 alert_rules = [
     {
         "title": "🚨 SQL Injection Detected",
-        "condition": "{job=\"honeypot\", service=\"database\"} |= \"UNION\" or \"DROP\" or \"SELECT\"",
+        "condition": '{job="honeypot", service="database"} |= "UNION" or "DROP" or "SELECT"',
         "severity": "CRITICAL",
-        "for": "1m"
+        "for": "1m",
     },
     {
         "title": "⚠️ Directory Traversal Attempt",
-        "condition": "{job=\"honeypot\", service=\"http\"} |= \"../\" or \"..\\\\\"",
+        "condition": '{job="honeypot", service="http"} |= "../" or "..\\\\"',
         "severity": "HIGH",
-        "for": "2m"
+        "for": "2m",
     },
     {
         "title": "🔓 Admin Access Attempt",
-        "condition": "{job=\"honeypot\", service=\"http\"} |= \"admin\"",
+        "condition": '{job="honeypot", service="http"} |= "admin"',
         "severity": "HIGH",
-        "for": "1m"
+        "for": "1m",
     },
     {
         "title": "🔍 Reconnaissance Activity",
-        "condition": "{job=\"honeypot\"} |= \"reconnaissance\" or \"scanning\" or \"probe\"",
+        "condition": '{job="honeypot"} |= "reconnaissance" or "scanning" or "probe"',
         "severity": "MEDIUM",
-        "for": "5m"
-    }
+        "for": "5m",
+    },
 ]
 
 print("\n✓ Step 2: Alert Rules Configured")
@@ -134,18 +122,18 @@ annotations = [
     {
         "text": "High HTTP Attack Activity Detected",
         "tags": ["http", "attack", "high-rate"],
-        "dashboard": "sigilhive"
+        "dashboard": "sigilhive",
     },
     {
         "text": "SQL Injection Attempt Blocked",
         "tags": ["database", "sql-injection", "critical"],
-        "dashboard": "sigilhive"
+        "dashboard": "sigilhive",
     },
     {
         "text": "Directory Traversal Attack Detected",
         "tags": ["http", "traversal", "security"],
-        "dashboard": "sigilhive"
-    }
+        "dashboard": "sigilhive",
+    },
 ]
 
 print("\n✓ Step 3: Annotations Configured")
@@ -157,14 +145,14 @@ incidents = [
         "title": "SQL Injection Attack Wave",
         "description": "Multiple SQL injection attempts detected targeting database honeypot",
         "severity": "CRITICAL",
-        "status": "triggered"
+        "status": "triggered",
     },
     {
         "title": "Directory Traversal Reconnaissance",
         "description": "Series of directory traversal attempts on HTTP honeypot",
         "severity": "HIGH",
-        "status": "triggered"
-    }
+        "status": "triggered",
+    },
 ]
 
 print("\n✓ Step 4: Incident Configuration")
@@ -174,14 +162,14 @@ for i, incident in enumerate(incidents, 1):
 
 # Step 5: Query Examples for Loki
 loki_queries = {
-    "all_events": "{job=\"honeypot\"}",
-    "http_logs": "{job=\"honeypot\", service=\"http\"}",
-    "database_logs": "{job=\"honeypot\", service=\"database\"}",
-    "ssh_logs": "{job=\"honeypot\", service=\"ssh\"}",
-    "sql_injection": "{job=\"honeypot\"} |= \"UNION\" or \"DROP\" or \"SELECT\"",
-    "directory_traversal": "{job=\"honeypot\"} |= \"../\"",
-    "admin_access": "{job=\"honeypot\"} |= \"admin\"",
-    "critical_events": "{job=\"honeypot\"} | level=\"CRITICAL\""
+    "all_events": '{job="honeypot"}',
+    "http_logs": '{job="honeypot", service="http"}',
+    "database_logs": '{job="honeypot", service="database"}',
+    "ssh_logs": '{job="honeypot", service="ssh"}',
+    "sql_injection": '{job="honeypot"} |= "UNION" or "DROP" or "SELECT"',
+    "directory_traversal": '{job="honeypot"} |= "../"',
+    "admin_access": '{job="honeypot"} |= "admin"',
+    "critical_events": '{job="honeypot"} | level="CRITICAL"',
 }
 
 print("\n✓ Step 5: Loki Query Examples Prepared")
@@ -234,22 +222,22 @@ print(f"""
 """)
 
 # Save configurations for MCP tools
-with open('grafana_dashboard.json', 'w') as f:
+with open("grafana_dashboard.json", "w") as f:
     json.dump(dashboard_config, f, indent=2)
     print("✅ Saved: grafana_dashboard.json")
 
-with open('grafana_alerts.json', 'w') as f:
+with open("grafana_alerts.json", "w") as f:
     json.dump({"alerts": alert_rules}, f, indent=2)
     print("✅ Saved: grafana_alerts.json")
 
-with open('grafana_annotations.json', 'w') as f:
+with open("grafana_annotations.json", "w") as f:
     json.dump({"annotations": annotations}, f, indent=2)
     print("✅ Saved: grafana_annotations.json")
 
-with open('grafana_incidents.json', 'w') as f:
+with open("grafana_incidents.json", "w") as f:
     json.dump({"incidents": incidents}, f, indent=2)
     print("✅ Saved: grafana_incidents.json")
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("Configuration files saved! Ready for MCP deployment.")
-print("="*60)
+print("=" * 60)
