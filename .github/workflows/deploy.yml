@@ -10,9 +10,9 @@ on:
 # ── Global env vars used across all jobs ─────────────────────────────────────
 env:
   PROJECT_ID:  ${{ secrets.GCP_PROJECT_ID }}
-  CLUSTER:     sigilhive-cluster
-  ZONE:        asia-south1-a
-  REGION:      asia-south1
+  CLUSTER:     ${{ vars.GKE_CLUSTER || 'sigilhive-cluster' }}
+  ZONE:        ${{ vars.GKE_ZONE || 'asia-south1-a' }}
+  REGION:      ${{ vars.GKE_REGION || 'asia-south1' }}
   REGISTRY:    asia-south1-docker.pkg.dev
   AR_REPO:     sigilhive          # Artifact Registry repository name
   NAMESPACE:   sigilhive
@@ -180,9 +180,20 @@ jobs:
       - name: Set up gcloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify target GKE cluster exists
+        run: |
+          set -e
+          test -n "${PROJECT_ID}" || (echo "GCP_PROJECT_ID secret is empty" && exit 1)
+          echo "Looking for GKE cluster '${CLUSTER}' in project '${PROJECT_ID}', location '${REGION}'..."
+          gcloud container clusters list \
+            --project="${PROJECT_ID}" \
+            --filter="name=${CLUSTER}" \
+            --format="table(name,location,status,currentMasterVersion)"
+
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
+          project_id:   ${{ env.PROJECT_ID }}
           cluster_name: ${{ env.CLUSTER }}
           location:     ${{ env.REGION }}
 
