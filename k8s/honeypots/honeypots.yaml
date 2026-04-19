@@ -55,7 +55,7 @@ spec:
           env:
             - name: PORT
               value: "5555"
-            - name: KAFKA_BROKER
+            - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka-svc:9092"
             - name: RL_ENABLED
               value: "true"
@@ -140,7 +140,7 @@ spec:
             - containerPort: 8080
               name: http
           env:
-            - name: KAFKA_BROKER
+            - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka-svc:9092"
             - name: RL_ENABLED
               value: "true"
@@ -222,6 +222,8 @@ spec:
               value: "shophub123"
             - name: MYSQL_ROOT_HOST
               value: "%"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-svc:9092"
           startupProbe:
             tcpSocket:
               port: 3306
@@ -306,7 +308,7 @@ spec:
             # Attacker targets internal service DNS — no external IP needed
             - name: TARGET_HOST
               value: "ssh-honeypot-svc"
-            - name: KAFKA_BROKER
+            - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka-svc:9092"
           envFrom:
             - secretRef:

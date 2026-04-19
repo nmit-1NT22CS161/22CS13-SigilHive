@@ -210,7 +210,9 @@ jobs:
         run: kubectl apply -f k8s/base/namespace.yaml
 
       - name: Deploy Kafka
-        run: kubectl apply -f k8s/kafka/ -n ${{ env.NAMESPACE }}
+        run: |
+          kubectl delete job kafka-create-topics -n ${{ env.NAMESPACE }} --ignore-not-found
+          kubectl apply -f k8s/kafka/ -n ${{ env.NAMESPACE }}
 
       - name: Restart Kafka StatefulSet
         run: kubectl rollout restart statefulset/kafka -n ${{ env.NAMESPACE }}
@@ -226,6 +228,18 @@ jobs:
             kubectl describe pod kafka-0 -n ${{ env.NAMESPACE }} || true
             kubectl logs kafka-0 -n ${{ env.NAMESPACE }} -c kafka --tail=200 || true
             kubectl logs kafka-0 -n ${{ env.NAMESPACE }} -c fix-permissions --tail=200 || true
+            kubectl get events -n ${{ env.NAMESPACE }} --sort-by=.lastTimestamp | tail -n 50 || true
+            exit 1
+          fi
+
+      - name: Wait for Kafka topics
+        run: |
+          set -e
+          if ! kubectl wait --for=condition=complete job/kafka-create-topics \
+            -n ${{ env.NAMESPACE }} --timeout=300s; then
+            echo "Kafka topic bootstrap failed. Collecting diagnostics..."
+            kubectl describe job kafka-create-topics -n ${{ env.NAMESPACE }} || true
+            kubectl logs job/kafka-create-topics -n ${{ env.NAMESPACE }} --tail=200 || true
             kubectl get events -n ${{ env.NAMESPACE }} --sort-by=.lastTimestamp | tail -n 50 || true
             exit 1
           fi

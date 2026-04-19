@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-create-topics
+  namespace: sigilhive
+  labels:
+    app: kafka
+    component: topic-bootstrap
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: kafka
+        component: topic-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-topics
+          image: confluentinc/cp-kafka:7.8.3
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+
+              echo "Waiting for kafka-svc:9092..."
+              until kafka-broker-api-versions --bootstrap-server kafka-svc:9092 >/dev/null 2>&1; do
+                sleep 5
+              done
+
+              for topic in \
+                HTTPtoSSH DBtoSSH \
+                DBtoHTTP SSHtoHTTP \
+                HTTPtoDB SSHtoDB \
+                honeypot-logs; do
+                echo "Ensuring topic exists: ${topic}"
+                kafka-topics \
+                  --bootstrap-server kafka-svc:9092 \
+                  --create \
+                  --if-not-exists \
+                  --topic "${topic}" \
+                  --partitions 1 \
+                  --replication-factor 1
+              done
+
+              echo "Kafka topics are ready."

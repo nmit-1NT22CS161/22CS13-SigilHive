@@ -18,7 +18,10 @@ class HoneypotKafkaManager:
         log("🚀 [Kafka Manager] Initializing HoneypotKafkaManager...")
 
         if bootstrap_servers is None:
-            bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+            bootstrap_servers = os.getenv(
+                "KAFKA_BOOTSTRAP_SERVERS",
+                os.getenv("KAFKA_BROKER", "kafka:9092"),
+            )
 
         log(f"🔧 [Kafka Manager] Bootstrap servers: {bootstrap_servers}")
 
