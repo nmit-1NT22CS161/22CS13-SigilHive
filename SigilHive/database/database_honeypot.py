@@ -748,6 +748,10 @@ class MySQLProtocol(asyncio.Protocol):
         print(
             f"[mysql][{self.session_id}] disconnected after {duration:.1f}s ({self.query_count} queries)"
         )
+        try:
+            controller.end_session(self.session_id)
+        except Exception as e:
+            print(f"[mysql][{self.session_id}] error ending session: {e}")
         if self._worker_task and not self._worker_task.done():
             self._worker_task.cancel()
 

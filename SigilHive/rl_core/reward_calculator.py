@@ -9,7 +9,9 @@ from typing import Tuple
 from .config import REWARD_CONFIG, STATE_BUCKETS
 
 
-def calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> float:
+def calculate_reward(
+    prev_state: Tuple, curr_state: Tuple, protocol: str, terminal: bool = False
+) -> float:
     """
     Calculate reward for state transition.
 
@@ -20,6 +22,7 @@ def calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> flo
         prev_state: Previous state tuple
         curr_state: Current state tuple
         protocol: "database", "http", or "ssh"
+        terminal: True when the session ended after the action.
 
     Returns:
         Reward value (float, can be negative)
@@ -39,6 +42,7 @@ def calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> flo
     beta = REWARD_CONFIG["beta"]
     gamma1 = REWARD_CONFIG["gamma1"]
     gamma2 = REWARD_CONFIG["gamma2"]
+    engagement_step = REWARD_CONFIG.get("engagement_step", 1.0)
 
     # Calculate deltas
     delta_duration = curr_duration - prev_duration
@@ -48,7 +52,9 @@ def calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> flo
     detection = 1 if _detect_honeypot_awareness(prev_state, curr_state) else 0
 
     # Detect early termination
-    termination = 1 if _detect_early_termination(prev_state, curr_state) else 0
+    termination = (
+        1 if terminal and _detect_early_termination(prev_state, curr_state) else 0
+    )
 
     # Base reward
     reward = (
@@ -57,6 +63,11 @@ def calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> flo
         - gamma1 * detection
         - gamma2 * termination
     )
+
+    # When a later interaction arrives, the previous response achieved the
+    # core honeypot goal: keeping the attacker engaged for one more step.
+    if not terminal and curr_rate > 0:
+        reward += engagement_step
 
     # Add protocol-specific bonuses
     bonus = _protocol_specific_bonus(prev_state, curr_state, protocol)
@@ -236,7 +247,7 @@ if __name__ == "__main__":
     print("Test 2: Attacker detected honeypot")
     prev = (1, 2, 1, 0, 0)
     curr = (0, 2, 1, 2, 0)  # LOW rate, HIGH errors (suspicious)
-    reward = calculate_reward(prev, curr, "ssh")
+    reward = calculate_reward(prev, curr, "ssh", terminal=True)
     print(f"  Previous state: {prev}")
     print(f"  Current state:  {curr}")
     print(f"  Reward: {reward:.2f} (should be negative)\n")

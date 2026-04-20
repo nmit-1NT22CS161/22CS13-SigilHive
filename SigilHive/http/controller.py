@@ -111,8 +111,36 @@ class ShopHubController:
                 "ip": None,
                 "cart_items": 0,
                 "logged_in": False,
+                "pending_rl": None,
             }
         return self.sessions[session_id]
+
+    def _update_pending_rl(
+        self, session_id: str, curr_state: tuple, terminal: bool = False
+    ):
+        session = self.sessions.get(session_id)
+        if not session:
+            return
+
+        pending = session.get("pending_rl")
+        if not pending:
+            return
+
+        reward = calculate_reward(
+            pending["state"], curr_state, protocol="http", terminal=terminal
+        )
+        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        session["pending_rl"] = None
+
+        if terminal:
+            self.rl_agent.save_q_table()
+
+    def end_session(self, session_id: str):
+        if session_id in self.sessions:
+            if self.rl_enabled:
+                curr_state = extract_state(session_id, protocol="http")
+                self._update_pending_rl(session_id, curr_state, terminal=True)
+            del self.sessions[session_id]
 
     def _classify_request(self, method: str, path: str, headers: dict) -> str:
         """Classify request type"""
@@ -362,8 +390,25 @@ class ShopHubController:
         path = event.get("path", "/")
         headers = event.get("headers", {})
         body = event.get("body", None)
+        session = self._get_session(session_id)
+        session["request_history"].append(f"{method} {path}")
+        session["request_history"] = session["request_history"][-50:]
+        session["user_agent"] = headers.get("user-agent", session.get("user_agent"))
+        if self._is_suspicious(method, path, headers, body):
+            session["suspicious_count"] += 1
 
-        # 1. Log interaction for RL
+        state = extract_state(session_id, protocol="http")
+        if self.rl_enabled:
+            self._update_pending_rl(session_id, state)
+
+        rl_action = None
+        if self.rl_enabled:
+            rl_action = self.rl_agent.select_action(state)
+            response = await self._execute_rl_action(rl_action, session_id, event)
+        else:
+            response = await self._original_request_handler(session_id, event)
+
+        status_code = int(response.get("status_code", 200))
         log_interaction(
             session_id=session_id,
             protocol="http",
@@ -373,28 +418,14 @@ class ShopHubController:
                 "suspicious": self._is_suspicious(method, path, headers, body),
                 "method": method,
                 "user_agent": headers.get("user-agent", ""),
+                "status_code": status_code,
+                "response_action": rl_action or "BASELINE",
             },
+            success=status_code < 400,
         )
 
-        # 2. Extract current state
-        state = extract_state(session_id, protocol="http")
-
-        # 3. Select and execute action
-        rl_action = None
-        if self.rl_enabled and method.upper() == "GET":
-            # For GET requests, always use realistic response (no RL)
-            response = await self._original_request_handler(session_id, event)
-        elif self.rl_enabled:
-            rl_action = self.rl_agent.select_action(state)
-            response = await self._execute_rl_action(rl_action, session_id, event)
-        else:
-            response = await self._original_request_handler(session_id, event)
-
-        # 4. Update Q-table (only if RL action was taken)
         if self.rl_enabled and rl_action is not None:
-            next_state = extract_state(session_id, protocol="http")
-            reward = calculate_reward(state, next_state, protocol="http")
-            self.rl_agent.update(state, rl_action, reward, next_state)
+            session["pending_rl"] = {"state": state, "action": rl_action}
 
         return response
 
@@ -728,6 +759,11 @@ class ShopHubController:
             return await self._original_request_handler(session_id, event)
 
         elif action == "TERMINATE_SESSION":
+            if len(self._get_session(session_id).get("request_history", [])) < 5:
+                response = await self._original_request_handler(session_id, event)
+                response["delay"] = max(response.get("delay", 0.0), 0.1)
+                return response
+
             # Force disconnect
             return {
                 "status_code": 403,

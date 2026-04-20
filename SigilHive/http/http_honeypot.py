@@ -151,6 +151,9 @@ class HTTPSProtocol(asyncio.Protocol):
 
     def send_response(self, status_code: int, headers: dict, body: str):
         """Send HTTPS response"""
+        body = body or ""
+        headers = dict(headers or {})
+
         # Status line
         status_messages = {
             200: "OK",
@@ -170,6 +173,9 @@ class HTTPSProtocol(asyncio.Protocol):
         }
         status_message = status_messages.get(status_code, "Unknown")
         response = f"HTTP/1.1 {status_code} {status_message}\r\n"
+
+        if not any(key.lower() == "content-length" for key in headers):
+            headers["Content-Length"] = str(len(body.encode("utf-8")))
 
         # Headers
         for key, value in headers.items():
@@ -196,6 +202,10 @@ class HTTPSProtocol(asyncio.Protocol):
             log(f"[https][{self.session_id}] connection lost: {exc}")
         else:
             log(f"[https][{self.session_id}] connection closed")
+        try:
+            controller.end_session(self.session_id)
+        except Exception as e:
+            log(f"[https][{self.session_id}] error ending session: {e}")
 
 
 def generate_self_signed_cert(certfile="shophub_cert.pem", keyfile="shophub_key.pem"):

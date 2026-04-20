@@ -11,6 +11,7 @@ services:
       - .env
     volumes:
       - ssh_cache:/app/cache
+      - ssh_storage:/app/storage
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:
@@ -30,6 +31,7 @@ services:
       - .env
     volumes:
       - http_cache:/app/cache
+      - http_storage:/app/storage
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:
@@ -48,6 +50,7 @@ services:
       - .env
     volumes:
       - db_cache:/app/cache
+      - db_storage:/app/storage
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:
@@ -124,5 +127,8 @@ volumes:
   ssh_cache:
   http_cache:
   db_cache:
+  ssh_storage:
+  http_storage:
+  db_storage:
   adv_training_cache:
   kafka_kraft: {}

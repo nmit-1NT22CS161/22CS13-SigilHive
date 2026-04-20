@@ -33,6 +33,35 @@ class HoneypotSession(asyncssh.SSHServerSession):
         self.current_dir = "~"
         self.username = "shophub"
         self.hostname = "shophub-prod-01"
+        self._pending_tasks = set()
+
+    def _mark_closed(self):
+        self._closed = True
+
+    def _safe_write(self, text: str) -> bool:
+        """Write to the SSH channel only while it is still usable."""
+        if self._closed or not self._chan:
+            return False
+        try:
+            self._chan.write(str(text))
+            return True
+        except Exception:
+            self._mark_closed()
+            return False
+
+    def _close_channel(self, exit_status: int = 0):
+        """Close the SSH channel without raising if the client already left."""
+        if self._closed or not self._chan:
+            return
+        self._mark_closed()
+        try:
+            self._chan.exit(exit_status)
+        except Exception:
+            pass
+        try:
+            self._chan.close()
+        except Exception:
+            pass
 
     def connection_made(self, chan):
         self._chan = chan
@@ -50,20 +79,18 @@ ShopHub v2.3.1 - E-commerce Platform
 Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
 """
-            self._chan.write(str(banner))
-            self._chan.write("\r\n")
+            if not self._safe_write(str(banner)):
+                return
+            if not self._safe_write("\r\n"):
+                return
             self._write_prompt()
         except Exception as e:
             print(f"[honeypot][{self.session_id}] error in connection_made: {e}")
 
     def _write_prompt(self):
         """Write a realistic shell prompt"""
-        if self._chan and not self._closed:
-            try:
-                prompt = f"\033[32m{self.username}@{self.hostname}\033[0m:\033[34m{self.current_dir}\033[0m$ "
-                self._chan.write(str(prompt))
-            except Exception as e:
-                print(f"[honeypot][{self.session_id}] error in _write_prompt: {e}")
+        prompt = f"\033[32m{self.username}@{self.hostname}\033[0m:\033[34m{self.current_dir}\033[0m$ "
+        self._safe_write(prompt)
 
     def _normalize_path(self, path: str) -> str:
         """Normalize a path relative to current directory"""
@@ -115,9 +142,15 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
     def data_received(self, data, datatype):
         """Handle incoming data from SSH client"""
+        if self._closed:
+            return
+
         self._input += data
 
         while "\n" in self._input or "\r" in self._input:
+            if self._closed:
+                return
+
             if "\r\n" in self._input:
                 line, self._input = self._input.split("\r\n", 1)
             elif "\n" in self._input:
@@ -131,11 +164,8 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
             # Handle exit commands
             if cmd.lower() in ("exit", "logout", "quit"):
-                try:
-                    self._chan.write("\nGoodbye from ShopHub!\n")
-                    self._chan.exit(0)
-                except Exception:
-                    pass
+                self._safe_write("\nGoodbye from ShopHub!\n")
+                self._close_channel(0)
                 return
 
             # Handle empty input
@@ -152,7 +182,9 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
                 continue
 
             self.cmd_count += 1
-            asyncio.create_task(self.handle_command(cmd))
+            task = asyncio.create_task(self.handle_command(cmd))
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
 
     def _handle_cd_command(self, cmd: str):
         """Handle cd command with validation"""
@@ -171,25 +203,13 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
             if self._directory_exists(target_path):
                 self.current_dir = target_path
             else:
-                try:
-                    self._chan.write(
-                        f"bash: cd: {parts[1]}: No such file or directory\n"
-                    )
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        self._write_prompt()
-                    except Exception:
-                        pass
-                    return
+                self._safe_write(f"bash: cd: {parts[1]}: No such file or directory\n")
+                self._write_prompt()
+                return
 
         print(f"[honeypot][{self.session_id}] cd -> {self.current_dir}")
 
-        try:
-            self._write_prompt()
-        except Exception as e:
-            print(f"[honeypot][{self.session_id}] error writing prompt after cd: {e}")
+        self._write_prompt()
 
     async def handle_command(self, cmd: str):
         """Handle commands asynchronously"""
@@ -224,18 +244,25 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
             except asyncio.CancelledError:
                 return
 
+        if self._closed or not self._chan:
+            return
+
         response_text = action.get("response", "")
         if not response_text:
             response_text = ""
 
-        try:
-            self._chan.write(str(response_text))
-            if not str(response_text).endswith("\n"):
-                self._chan.write("\n")
-            self._write_prompt()
-        except (BrokenPipeError, EOFError, asyncssh.Error) as e:
-            print(f"[honeypot][{self.session_id}] write error (connection closed): {e}")
-            self._closed = True
+        if response_text and not self._safe_write(str(response_text)):
+            return
+        if response_text and not str(response_text).endswith("\n"):
+            if not self._safe_write("\n"):
+                return
+
+        if action.get("disconnect"):
+            print(f"[honeypot][{self.session_id}] controller requested disconnect")
+            self._close_channel(0)
+            return
+
+        self._write_prompt()
 
     def eof_received(self):
         print(f"[honeypot][{self.session_id}] EOF received")
@@ -280,7 +307,10 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
     def connection_lost(self, exc):
         """Called when SSH connection is lost"""
-        self._closed = True
+        self._mark_closed()
+        for task in list(self._pending_tasks):
+            task.cancel()
+        self._pending_tasks.clear()
         duration = time.time() - self.start_time
         print(f"[honeypot][{self.session_id}] connection closed after {duration:.2f}s")
 

@@ -10,6 +10,7 @@ from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
 from rl_core.logging.structured_logger import log_interaction
+from rl_core.config import BASELINE_CONFIG
 
 
 class Controller:
@@ -33,6 +34,7 @@ class Controller:
                 "last_cmd": "",
                 "current_dir": "~",
                 "command_history": [],
+                "pending_rl": None,
             },
         )
         meta["cmd_count"] = event.get("cmd_count", meta["cmd_count"])
@@ -51,6 +53,39 @@ class Controller:
         meta["last_ts"] = time.time()
         self.sessions[session_id] = meta
         return meta
+
+    def _response_success(self, response: Dict[str, Any]) -> bool:
+        text = str(response.get("response", "")).lower()
+        error_markers = (
+            "command not found",
+            "no such file or directory",
+            "permission denied",
+            "missing file operand",
+            "usage:",
+            "fatal:",
+            "error",
+        )
+        return not any(marker in text for marker in error_markers)
+
+    def _update_pending_rl(
+        self, session_id: str, curr_state: tuple, terminal: bool = False
+    ):
+        meta = self.sessions.get(session_id)
+        if not meta:
+            return
+
+        pending = meta.get("pending_rl")
+        if not pending:
+            return
+
+        reward = calculate_reward(
+            pending["state"], curr_state, protocol="ssh", terminal=terminal
+        )
+        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        meta["pending_rl"] = None
+
+        if terminal:
+            self.rl_agent.save_q_table()
 
     def get_directory_context(self, current_dir: str) -> Dict[str, Any]:
         normalized_dir = current_dir.strip()
@@ -205,41 +240,44 @@ class Controller:
         cmd = meta.get("last_cmd", "")
         intent = self.classify_command(cmd)
 
-        # Always log the interaction so state_extractor can build the
-        # session log file that extract_state() reads.
-        log_interaction(
-            session_id=session_id,
-            protocol="ssh",
-            input_data=cmd,
-            metadata={
-                "intent": intent,
-                "current_dir": meta.get("current_dir", "~"),
-                "cmd_count": meta.get("cmd_count", 0),
-            },
-        )
+        state = extract_state(session_id, protocol="ssh")
+        if self.rl_enabled:
+            self._update_pending_rl(session_id, state)
 
         if not self.rl_enabled:
-            return await self._original_command_handler(session_id, event)
+            action_result = await self._original_command_handler(session_id, event)
+            log_interaction(
+                session_id=session_id,
+                protocol="ssh",
+                input_data=cmd,
+                metadata={
+                    "intent": intent,
+                    "current_dir": meta.get("current_dir", "~"),
+                    "cmd_count": meta.get("cmd_count", 0),
+                    "response_action": "BASELINE",
+                },
+                success=self._response_success(action_result),
+            )
+            return action_result
 
         try:
-            # 1. Extract state using the correct API:
-            #    extract_state(session_id: str, protocol: str) -> Tuple[int, ...]
-            prev_state = extract_state(session_id, protocol="ssh")
+            action = self.rl_agent.select_action(state)
 
-            # 2. Select action using the correct API:
-            #    QLearningAgent.select_action(state: Tuple) -> str
-            action = self.rl_agent.select_action(prev_state)
-
-            # 3. Execute the RL-chosen action
             action_result = await self._execute_rl_action(action, session_id, event)
 
-            # 4. Compute next state and reward, then update Q-table
-            #    calculate_reward(prev_state: Tuple, curr_state: Tuple, protocol: str) -> float
-            next_state = extract_state(session_id, protocol="ssh")
-            reward = calculate_reward(prev_state, next_state, protocol="ssh")
-
-            # QLearningAgent.update(state, action, reward, next_state)
-            self.rl_agent.update(prev_state, action, reward, next_state)
+            log_interaction(
+                session_id=session_id,
+                protocol="ssh",
+                input_data=cmd,
+                metadata={
+                    "intent": intent,
+                    "current_dir": meta.get("current_dir", "~"),
+                    "cmd_count": meta.get("cmd_count", 0),
+                    "response_action": action,
+                },
+                success=self._response_success(action_result),
+            )
+            meta["pending_rl"] = {"state": state, "action": action}
 
             return action_result
 
@@ -588,6 +626,19 @@ class Controller:
             return await self._original_command_handler(session_id, event)
 
         elif action == "TERMINATE_SESSION":
+            cmd_count = int(meta.get("cmd_count", 0) or 0)
+            elapsed = float(meta.get("elapsed", 0.0) or 0.0)
+            min_elapsed = BASELINE_CONFIG.get("quick_disconnect_threshold", 30)
+
+            if cmd_count < 5 or elapsed < min_elapsed:
+                print(
+                    f"[Controller] Ignoring early TERMINATE_SESSION for {session_id} "
+                    f"(cmd_count={cmd_count}, elapsed={elapsed:.2f}s)"
+                )
+                response = await self._original_command_handler(session_id, event)
+                response["delay"] = max(response.get("delay", 0.0), 0.1)
+                return response
+
             return {
                 "response": "Connection to shophub-prod-01 closed by remote host.",
                 "delay": 0.0,
@@ -598,5 +649,8 @@ class Controller:
 
     def end_session(self, session_id: str):
         if session_id in self.sessions:
+            if self.rl_enabled:
+                curr_state = extract_state(session_id, protocol="ssh")
+                self._update_pending_rl(session_id, curr_state, terminal=True)
             print(f"[Controller] Session {session_id} ended")
             del self.sessions[session_id]

@@ -35,9 +35,10 @@ REWARD_CONFIG = {
     # Positive rewards (encourage engagement)
     "alpha": 1.0,  # Weight for session duration increase
     "beta": 2.0,  # Weight for unique commands/queries
+    "engagement_step": 4.0,  # Reward when the attacker sends another interaction
     # Negative rewards (penalize mistakes)
-    "gamma1": 5.0,  # Penalty for honeypot detection
-    "gamma2": 3.0,  # Penalty for early termination
+    "gamma1": 2.0,  # Penalty for honeypot detection
+    "gamma2": 2.0,  # Penalty for early termination
     # Protocol-specific bonuses
     "ssh_file_access_bonus": 2.0,
     "ssh_privesc_bonus": 3.0,

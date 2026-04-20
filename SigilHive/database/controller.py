@@ -234,8 +234,40 @@ class ShopHubDBController:
                 "suspicious_count": 0,
                 "failed_auth_attempts": 0,
                 "username": None,
+                "pending_rl": None,
             }
         return self.sessions[session_id]
+
+    def _response_success(self, response: Dict) -> bool:
+        text = str(response.get("response", "")).strip().upper()
+        return not text.startswith("ERROR")
+
+    def _update_pending_rl(
+        self, session_id: str, curr_state: tuple, terminal: bool = False
+    ):
+        session = self.sessions.get(session_id)
+        if not session:
+            return
+
+        pending = session.get("pending_rl")
+        if not pending:
+            return
+
+        reward = calculate_reward(
+            pending["state"], curr_state, protocol="database", terminal=terminal
+        )
+        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        session["pending_rl"] = None
+
+        if terminal:
+            self.rl_agent.save_q_table()
+
+    def end_session(self, session_id: str):
+        if session_id in self.sessions:
+            if self.rl_enabled:
+                curr_state = extract_state(session_id, protocol="database")
+                self._update_pending_rl(session_id, curr_state, terminal=True)
+            del self.sessions[session_id]
 
     def _classify_query(self, query):
         q_upper = query.upper().strip()
@@ -605,34 +637,42 @@ class ShopHubDBController:
 
     async def get_action_for_query(self, session_id, event):
         query = event.get("query", "")
-        log_interaction(
-            session_id=session_id,
-            protocol="database",
-            input_data=query,
-            metadata={
-                "intent": self._classify_query(query),
-                "suspicious": self._is_suspicious(query),
-                "current_db": self.db_state.current_db,
-            },
-        )
+        session = self._get_session(session_id)
+        session["query_history"].append(query)
+        session["query_history"] = session["query_history"][-50:]
+        if event.get("username"):
+            session["username"] = event.get("username")
+        if self._is_suspicious(query):
+            session["suspicious_count"] += 1
 
+        intent = self._classify_query(query)
         state = extract_state(session_id, protocol="database")
+        if self.rl_enabled:
+            self._update_pending_rl(session_id, state)
+
         rl_action = None
 
-        if self.rl_enabled and event.get("query", "").upper().startswith(
-            ("SHOW", "SELECT")
-        ):
-            response = await self._original_query_handler(session_id, event)
-        elif self.rl_enabled:
+        if self.rl_enabled:
             rl_action = self.rl_agent.select_action(state)
             response = await self._execute_rl_action(rl_action, session_id, event)
         else:
             response = await self._original_query_handler(session_id, event)
 
+        log_interaction(
+            session_id=session_id,
+            protocol="database",
+            input_data=query,
+            metadata={
+                "intent": intent,
+                "suspicious": self._is_suspicious(query),
+                "current_db": self.db_state.current_db,
+                "response_action": rl_action or "BASELINE",
+            },
+            success=self._response_success(response),
+        )
+
         if self.rl_enabled and rl_action is not None:
-            next_state = extract_state(session_id, protocol="database")
-            reward = calculate_reward(state, next_state, protocol="database")
-            self.rl_agent.update(state, rl_action, reward, next_state)
+            session["pending_rl"] = {"state": state, "action": rl_action}
 
         return response
 
@@ -753,6 +793,11 @@ class ShopHubDBController:
             return await self._original_query_handler(session_id, event)
 
         elif action == "TERMINATE_SESSION":
+            if len(self._get_session(session_id).get("query_history", [])) < 5:
+                response = await self._original_query_handler(session_id, event)
+                response["delay"] = max(response.get("delay", 0.0), 0.1)
+                return response
+
             return {
                 "response": "ERROR 2013 (HY000): Lost connection to MySQL server during query",
                 "delay": 0.0,
