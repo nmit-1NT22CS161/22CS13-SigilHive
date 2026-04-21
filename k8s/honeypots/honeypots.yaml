@@ -127,11 +127,15 @@ spec:
             - sh
             - -c
             - |
+              echo "Waiting for Kafka to be ready..."
               until nc -z kafka-svc 9092; do
                 echo "waiting for kafka-svc:9092..."
                 sleep 3
               done
-              echo "Kafka is up!"
+              # Extra 10s after TCP is up to let Kafka finish leader election
+              echo "Kafka TCP up, waiting 10s for broker readiness..."
+              sleep 10
+              echo "Kafka is ready!"
       containers:
         - name: http-honeypot
           # Built from SigilHive/http/Dockerfile
@@ -144,6 +148,10 @@ spec:
               value: "kafka-svc:9092"
             - name: RL_ENABLED
               value: "true"
+            - name: KAFKA_MAX_RETRIES
+              value: "20"
+            - name: KAFKA_RETRY_DELAY
+              value: "3"
           envFrom:
             - secretRef:
                 name: sigilhive-secrets
@@ -203,10 +211,25 @@ spec:
       labels:
         app: db-honeypot
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Kafka to be ready..."
+              until nc -z kafka-svc 9092; do
+                echo "waiting for kafka-svc:9092..."
+                sleep 3
+              done
+              # Extra 10s after TCP is up to let Kafka finish leader election
+              echo "Kafka TCP up, waiting 10s for broker readiness..."
+              sleep 10
+              echo "Kafka is ready!"
       containers:
         - name: db-honeypot
           # Built from SigilHive/database/Dockerfile.
-          # This now runs a real MySQL server seeded with decoy ShopHub data.
           image: IMAGE_REGISTRY/db_honeypot:IMAGE_TAG
           ports:
             - containerPort: 3306
@@ -224,6 +247,13 @@ spec:
               value: "%"
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka-svc:9092"
+            - name: KAFKA_MAX_RETRIES
+              value: "20"
+            - name: KAFKA_RETRY_DELAY
+              value: "3"
+          envFrom:
+            - secretRef:
+                name: sigilhive-secrets
           startupProbe:
             tcpSocket:
               port: 3306

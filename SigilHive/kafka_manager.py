@@ -14,7 +14,7 @@ def log(message: str):
 
 
 class HoneypotKafkaManager:
-    def __init__(self, bootstrap_servers=None, max_retries=5, retry_delay=2):
+    def __init__(self, bootstrap_servers=None, max_retries=None, retry_delay=None):
         log("🚀 [Kafka Manager] Initializing HoneypotKafkaManager...")
 
         if bootstrap_servers is None:
@@ -22,6 +22,14 @@ class HoneypotKafkaManager:
                 "KAFKA_BOOTSTRAP_SERVERS",
                 os.getenv("KAFKA_BROKER", "kafka:9092"),
             )
+
+        # Read retry config from env vars so Kubernetes deployments can tune
+        # without rebuilding the image. Defaults are generous (20 retries, 3s delay)
+        # to survive GKE Autopilot cold-start where Kafka takes 60-90s to be ready.
+        if max_retries is None:
+            max_retries = int(os.getenv("KAFKA_MAX_RETRIES", "20"))
+        if retry_delay is None:
+            retry_delay = int(os.getenv("KAFKA_RETRY_DELAY", "3"))
 
         log(f"🔧 [Kafka Manager] Bootstrap servers: {bootstrap_servers}")
 
