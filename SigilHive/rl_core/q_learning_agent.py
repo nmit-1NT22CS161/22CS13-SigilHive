@@ -9,9 +9,10 @@ import os
 import pickle
 import random
 import threading
+import time
 from typing import Tuple, Optional, Dict
 from .config import RL_CONFIG
-from .action_dispatcher import ACTIONS, validate_action
+from .action_dispatcher import ACTIONS, get_candidate_actions
 
 
 class QLearningAgent:
@@ -38,7 +39,7 @@ class QLearningAgent:
         self.epsilon_decay = self.config["epsilon_decay"]
         self.default_q_value = self.config["default_q_value"]
 
-        # Q-table: {(state_tuple, action_str): q_value}
+        # Q-table: {(protocol, state_tuple, action_str): q_value}
         self.q_table: Dict[Tuple[Tuple, str], float] = {}
 
         # Statistics
@@ -59,7 +60,7 @@ class QLearningAgent:
             f"[QLearningAgent] Initialized with ε={self.epsilon:.3f}, α={self.learning_rate}, γ={self.discount_factor}"
         )
 
-    def select_action(self, state: Tuple) -> str:
+    def select_action(self, state: Tuple, protocol: Optional[str] = None) -> str:
         """
         Select action using epsilon-greedy policy.
 
@@ -69,13 +70,15 @@ class QLearningAgent:
         Returns:
             Selected action string
         """
+        candidates = get_candidate_actions(protocol=protocol, state=state, exploration=False)
+
         # Epsilon-greedy: explore with probability epsilon
         if random.random() < self.epsilon:
-            # Exploration: random action
-            action = random.choice(ACTIONS)
+            action = random.choice(
+                get_candidate_actions(protocol=protocol, state=state, exploration=True)
+            )
         else:
-            # Exploitation: best known action
-            action = self.get_best_action(state)
+            action = self.get_best_action(state, protocol=protocol, candidates=candidates)
 
         # Track action selection
         with self.lock:
@@ -83,7 +86,12 @@ class QLearningAgent:
 
         return action
 
-    def get_best_action(self, state: Tuple) -> str:
+    def get_best_action(
+        self,
+        state: Tuple,
+        protocol: Optional[str] = None,
+        candidates: Optional[list[str]] = None,
+    ) -> str:
         """
         Get action with highest Q-value for given state.
 
@@ -94,9 +102,10 @@ class QLearningAgent:
             Best action string
         """
         q_values = {}
+        candidates = candidates or get_candidate_actions(protocol=protocol, state=state, exploration=False)
 
-        for action in ACTIONS:
-            q_values[action] = self.get_q_value(state, action)
+        for action in candidates:
+            q_values[action] = self.get_q_value(state, action, protocol=protocol)
 
         # Return action with max Q-value (random tiebreaker)
         max_q = max(q_values.values())
@@ -104,7 +113,10 @@ class QLearningAgent:
 
         return random.choice(best_actions)
 
-    def get_q_value(self, state: Tuple, action: str) -> float:
+    def _key(self, state: Tuple, action: str, protocol: Optional[str]) -> Tuple:
+        return (protocol or "global", state, action)
+
+    def get_q_value(self, state: Tuple, action: str, protocol: Optional[str] = None) -> float:
         """
         Get Q-value for state-action pair.
 
@@ -115,10 +127,21 @@ class QLearningAgent:
         Returns:
             Q-value (default 0.0 if unseen)
         """
-        key = (state, action)
-        return self.q_table.get(key, self.default_q_value)
+        key = self._key(state, action, protocol)
+        if key in self.q_table:
+            return self.q_table[key]
 
-    def update(self, state: Tuple, action: str, reward: float, next_state: Tuple):
+        legacy_key = (state, action)
+        return self.q_table.get(legacy_key, self.default_q_value)
+
+    def update(
+        self,
+        state: Tuple,
+        action: str,
+        reward: float,
+        next_state: Tuple,
+        protocol: Optional[str] = None,
+    ):
         """
         Update Q-value using Q-learning rule.
 
@@ -132,10 +155,16 @@ class QLearningAgent:
         """
         with self.lock:
             # Get current Q-value
-            current_q = self.get_q_value(state, action)
+            current_q = self.get_q_value(state, action, protocol=protocol)
 
             # Get max Q-value for next state
-            max_next_q = max(self.get_q_value(next_state, a) for a in ACTIONS)
+            candidates = get_candidate_actions(
+                protocol=protocol, state=next_state, exploration=False
+            )
+            max_next_q = max(
+                self.get_q_value(next_state, a, protocol=protocol)
+                for a in candidates
+            )
 
             # Compute TD target
             target = reward + self.discount_factor * max_next_q
@@ -144,7 +173,7 @@ class QLearningAgent:
             new_q = current_q + self.learning_rate * (target - current_q)
 
             # Store in Q-table
-            key = (state, action)
+            key = self._key(state, action, protocol)
             self.q_table[key] = new_q
 
             # Decay epsilon
@@ -181,13 +210,7 @@ class QLearningAgent:
             # Ensure directory exists
             os.makedirs(os.path.dirname(path), exist_ok=True)
 
-            # Save Q-table and metadata
-            data = {
-                "q_table": self.q_table,
-                "epsilon": self.epsilon,
-                "update_count": self.update_count,
-                "action_counts": self.action_counts,
-            }
+            data = self._build_merged_snapshot(path)
 
             with open(path, "wb") as f:
                 pickle.dump(data, f)
@@ -275,6 +298,44 @@ class QLearningAgent:
             print(f"  {action:25s}: {prob * 100:5.1f}% ({count} times)")
 
         print("=" * 70 + "\n")
+
+    def _build_merged_snapshot(self, path: str) -> Dict:
+        """
+        Merge the current in-memory table with any persisted shared table.
+        This reduces data loss when multiple honeypot containers save to the
+        same shared RL storage volume.
+        """
+        merged_q = dict(self.q_table)
+        merged_counts = dict(self.action_counts)
+        merged_updates = self.update_count
+        merged_epsilon = self.epsilon
+
+        if os.path.exists(path):
+            try:
+                with open(path, "rb") as f:
+                    existing = pickle.load(f)
+                existing_q = existing.get("q_table", {})
+                for key, value in existing_q.items():
+                    if key in merged_q:
+                        merged_q[key] = (merged_q[key] + value) / 2.0
+                    else:
+                        merged_q[key] = value
+
+                for action, count in existing.get("action_counts", {}).items():
+                    merged_counts[action] = max(merged_counts.get(action, 0), count)
+
+                merged_updates = max(merged_updates, int(existing.get("update_count", 0)))
+                merged_epsilon = min(merged_epsilon, float(existing.get("epsilon", merged_epsilon)))
+            except Exception:
+                pass
+
+        return {
+            "q_table": merged_q,
+            "epsilon": merged_epsilon,
+            "update_count": merged_updates,
+            "action_counts": merged_counts,
+            "saved_at": time.time(),
+        }
 
 
 # ==============================================================================

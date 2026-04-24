@@ -10,7 +10,7 @@ from kafka_manager import HoneypotKafkaManager
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
-from rl_core.logging.structured_logger import log_interaction
+from rl_core.logging.structured_logger import log_interaction, summarize_response_quality
 from rl_core.config import BASELINE_CONFIG
 
 
@@ -121,9 +121,19 @@ class Controller:
             return
 
         reward = calculate_reward(
-            pending["state"], curr_state, protocol="ssh", terminal=terminal
+            pending["state"],
+            curr_state,
+            protocol="ssh",
+            terminal=terminal,
+            session_id=session_id,
         )
-        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        self.rl_agent.update(
+            pending["state"],
+            pending["action"],
+            reward,
+            curr_state,
+            protocol="ssh",
+        )
         meta["pending_rl"] = None
 
         if terminal:
@@ -290,6 +300,14 @@ class Controller:
 
         if not self.rl_enabled:
             action_result = await self._original_command_handler(session_id, event)
+            response_quality = summarize_response_quality(
+                action_result.get("response", ""),
+                action="BASELINE",
+                protocol="ssh",
+                suspicious=intent in {"privilege_escalation", "read_file", "search"},
+                success=self._response_success(action_result),
+                disconnect=bool(action_result.get("disconnect")),
+            )
             log_interaction(
                 session_id=session_id,
                 protocol="ssh",
@@ -298,16 +316,25 @@ class Controller:
                     "intent": intent,
                     "current_dir": meta.get("current_dir", "~"),
                     "cmd_count": meta.get("cmd_count", 0),
-                    "response_action": "BASELINE",
+                    "suspicious": intent in {"privilege_escalation", "read_file", "search"},
+                    **response_quality,
                 },
                 success=self._response_success(action_result),
             )
             return action_result
 
         try:
-            action = self.rl_agent.select_action(state)
+            action = self.rl_agent.select_action(state, protocol="ssh")
 
             action_result = await self._execute_rl_action(action, session_id, event)
+            response_quality = summarize_response_quality(
+                action_result.get("response", ""),
+                action=action,
+                protocol="ssh",
+                suspicious=intent in {"privilege_escalation", "read_file", "search"},
+                success=self._response_success(action_result),
+                disconnect=bool(action_result.get("disconnect")),
+            )
 
             log_interaction(
                 session_id=session_id,
@@ -317,7 +344,8 @@ class Controller:
                     "intent": intent,
                     "current_dir": meta.get("current_dir", "~"),
                     "cmd_count": meta.get("cmd_count", 0),
-                    "response_action": action,
+                    "suspicious": intent in {"privilege_escalation", "read_file", "search"},
+                    **response_quality,
                 },
                 success=self._response_success(action_result),
             )

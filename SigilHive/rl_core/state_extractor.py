@@ -1,7 +1,8 @@
 import os
 import json
 from typing import Tuple, List, Dict
-from .config import STATE_BUCKETS, PROTOCOL_SETTINGS
+import re
+from .config import STATE_BUCKETS, PROTOCOL_SETTINGS, LOGGING_CONFIG
 
 
 def extract_state(session_id: str, protocol: str) -> Tuple:
@@ -9,8 +10,9 @@ def extract_state(session_id: str, protocol: str) -> Tuple:
     Extract current state for a session.
 
     Returns:
-        State tuple: (commands_per_min, unique_cmds, duration, error_ratio, privesc)
-        Each value is 0 (LOW), 1 (MED), or 2 (HIGH).
+        State tuple:
+        (commands_per_min, unique_cmds, duration, error_ratio, privesc,
+         suspicious, response_quality)
     """
     logs = _load_session_logs(session_id, protocol)
 
@@ -22,6 +24,8 @@ def extract_state(session_id: str, protocol: str) -> Tuple:
     duration = _calculate_session_duration(logs)
     error_ratio = _calculate_error_ratio(logs, protocol)
     privesc = _detect_privilege_escalation(logs, protocol)
+    suspicious = _detect_suspicious_activity(logs)
+    response_quality = _calculate_response_quality(logs)
 
     state = (
         _discretize(commands_per_min, STATE_BUCKETS["commands_per_minute"]),
@@ -29,12 +33,14 @@ def extract_state(session_id: str, protocol: str) -> Tuple:
         _discretize(duration, STATE_BUCKETS["session_duration"]),
         _discretize(error_ratio, STATE_BUCKETS["error_ratio"]),
         1 if privesc else 0,
+        1 if suspicious else 0,
+        _discretize(response_quality, STATE_BUCKETS["response_quality"]),
     )
     return state
 
 
 def _load_session_logs(session_id: str, protocol: str) -> List[Dict]:
-    log_dir = f"storage/session_logs/{protocol}"
+    log_dir = os.path.join(LOGGING_CONFIG["session_log_dir"], protocol)
     log_path = os.path.join(log_dir, f"{session_id}.jsonl")
 
     if not os.path.exists(log_path):
@@ -116,10 +122,9 @@ def _calculate_unique_commands(logs: List[Dict], protocol: str) -> int:
                 unique.add(path)
 
         elif protocol == "database":
-            query_upper = input_data.upper().strip()
-            query_type = query_upper.split()[0] if query_upper.split() else ""
-            if query_type:
-                unique.add(query_type)
+            signature = _database_query_signature(input_data)
+            if signature:
+                unique.add(signature)
 
     # ← FIX: this return is now OUTSIDE the for-loop
     return len(unique)
@@ -202,6 +207,32 @@ def _detect_privilege_escalation(logs: List[Dict], protocol: str) -> bool:
     return False
 
 
+def _detect_suspicious_activity(logs: List[Dict]) -> bool:
+    if not logs:
+        return False
+
+    for log in logs[-5:]:
+        metadata = log.get("metadata", {})
+        if metadata.get("suspicious"):
+            return True
+    return False
+
+
+def _calculate_response_quality(logs: List[Dict]) -> float:
+    if not logs:
+        return 0.0
+
+    scores = []
+    for log in logs[-3:]:
+        metadata = log.get("metadata", {})
+        if "quality_score" in metadata:
+            scores.append(float(metadata.get("quality_score", 0.0)))
+
+    if not scores:
+        return 0.0
+    return sum(scores) / len(scores)
+
+
 def _discretize(value: float, thresholds: list) -> int:
     """Discretize continuous value into LOW (0) / MED (1) / HIGH (2)."""
     if value < thresholds[0]:
@@ -210,3 +241,35 @@ def _discretize(value: float, thresholds: list) -> int:
         return 1
     else:
         return 2
+
+
+def _database_query_signature(query: str) -> str:
+    query_clean = (query or "").strip()
+    query_upper = query_clean.upper()
+    query_type = query_upper.split()[0] if query_upper.split() else ""
+    if not query_type:
+        return ""
+
+    if query_type in {"DESC", "DESCRIBE"}:
+        match = re.search(r"(?:DESC|DESCRIBE)\s+[`\"]?([\w\.]+)[`\"]?", query_clean, re.IGNORECASE)
+        return f"DESCRIBE:{match.group(1).lower()}" if match else "DESCRIBE"
+
+    if query_type == "USE":
+        match = re.search(r"USE\s+[`\"]?(\w+)[`\"]?", query_clean, re.IGNORECASE)
+        return f"USE:{match.group(1).lower()}" if match else "USE"
+
+    if query_type == "SHOW":
+        if "SHOW TABLES" in query_upper:
+            return "SHOW:TABLES"
+        if "SHOW DATABASES" in query_upper or "SHOW SCHEMAS" in query_upper:
+            return "SHOW:DATABASES"
+        return "SHOW"
+
+    if query_type in {"SELECT", "UPDATE", "DELETE", "INSERT"}:
+        match = re.search(r"\bFROM\s+[`\"]?([\w\.]+)[`\"]?", query_clean, re.IGNORECASE)
+        if not match and query_type == "INSERT":
+            match = re.search(r"INSERT\s+INTO\s+[`\"]?([\w\.]+)[`\"]?", query_clean, re.IGNORECASE)
+        target = match.group(1).lower() if match else "unknown"
+        return f"{query_type}:{target}"
+
+    return query_type

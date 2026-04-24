@@ -35,6 +35,7 @@ class HoneypotSession(asyncssh.SSHServerSession):
         self.hostname = "shophub-prod-01"
         self._pending_tasks = set()
         self._banner_sent = False
+        self._banner_attempts = 0
         self._command_lock = asyncio.Lock()
 
     def _mark_closed(self):
@@ -47,8 +48,11 @@ class HoneypotSession(asyncssh.SSHServerSession):
         try:
             self._chan.write(str(text))
             return True
-        except Exception:
-            self._mark_closed()
+        except Exception as exc:
+            print(
+                f"[honeypot][{self.session_id}] write deferred/failed: {exc}",
+                flush=True,
+            )
             return False
 
     def _close_channel(self, exit_status: int = 0):
@@ -71,8 +75,39 @@ class HoneypotSession(asyncssh.SSHServerSession):
 
     def _write_prompt(self):
         """Write a realistic shell prompt"""
-        prompt = f"\033[32m{self.username}@{self.hostname}\033[0m:\033[34m{self.current_dir}\033[0m$ "
+        prompt = (
+            f"\033[32m{self.username}@{self.hostname}\033[0m:"
+            f"\033[34m{self.current_dir}\033[0m$ "
+        )
         self._safe_write(prompt)
+
+    def _schedule_banner(self, delay: float = 0.05):
+        loop = asyncio.get_running_loop()
+        loop.call_later(delay, self._send_banner_if_ready)
+
+    def _send_banner_if_ready(self):
+        if self._closed or not self._chan or self._banner_sent:
+            return
+
+        self._banner_attempts += 1
+        banner = (
+            "\r\n"
+            "===============================================\r\n"
+            "   Welcome to ShopHub Production Server\r\n"
+            "   WARNING: Unauthorized access is prohibited\r\n"
+            "===============================================\r\n"
+            f"ShopHub v2.3.1 - Last login: "
+            f"{datetime.now().strftime('%a %b %d %H:%M:%S %Y')} from 10.0.2.15\r\n"
+            "\r\n"
+        )
+
+        if self._safe_write(banner):
+            self._banner_sent = True
+            self._write_prompt()
+            return
+
+        if self._banner_attempts < 6 and not self._closed:
+            self._schedule_banner(0.1)
 
     def _normalize_path(self, path: str) -> str:
         """Normalize a path relative to current directory"""
@@ -85,7 +120,6 @@ class HoneypotSession(asyncssh.SSHServerSession):
             if path == "/":
                 return "/"
             if path.startswith("/home/shophub"):
-                base_parts = []
                 rel_path = path.replace("/home/shophub", "~", 1)
                 if rel_path == "~":
                     return "~"
@@ -178,13 +212,11 @@ class HoneypotSession(asyncssh.SSHServerSession):
 
             cmd = line.strip()
 
-            # Handle exit commands
             if cmd.lower() in ("exit", "logout", "quit"):
                 self._safe_write("\nGoodbye from ShopHub!\n")
                 self._close_channel(0)
                 return
 
-            # Handle empty input
             if cmd == "":
                 try:
                     self._write_prompt()
@@ -192,7 +224,6 @@ class HoneypotSession(asyncssh.SSHServerSession):
                     pass
                 continue
 
-            # Handle cd command locally
             if cmd.startswith("cd ") or cmd == "cd":
                 self._handle_cd_command(cmd)
                 continue
@@ -224,13 +255,13 @@ class HoneypotSession(asyncssh.SSHServerSession):
                 return
 
         print(f"[honeypot][{self.session_id}] cd -> {self.current_dir}")
-
         self._write_prompt()
 
     async def handle_command(self, cmd: str):
         """Handle commands asynchronously"""
         if self._closed or not self._chan:
             return
+
         async with self._command_lock:
             event = {
                 "session_id": self.session_id,
@@ -263,9 +294,7 @@ class HoneypotSession(asyncssh.SSHServerSession):
             if self._closed or not self._chan:
                 return
 
-            response_text = action.get("response", "")
-            if not response_text:
-                response_text = ""
+            response_text = action.get("response", "") or ""
 
             if response_text and not self._safe_write(str(response_text)):
                 return
@@ -290,37 +319,18 @@ class HoneypotSession(asyncssh.SSHServerSession):
 
     def signal_received(self, signal):
         print(f"[honeypot][{self.session_id}] signal received: {signal}")
-        pass
 
     def session_started(self):
         print(f"[honeypot][{self.session_id}] session started")
         if self._banner_sent:
             return
-        self._banner_sent = True
         try:
-            banner = f"""
-╔═══════════════════════════════════════════════════════════╗
-║         Welcome to ShopHub Production Server              ║
-║                                                           ║
-║  WARNING: Unauthorized access is strictly prohibited      ║
-║  All activities are monitored and logged                  ║
-╚═══════════════════════════════════════════════════════════╝
-
-ShopHub v2.3.1 - E-commerce Platform
-Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
-
-"""
-            if not self._safe_write(str(banner)):
-                return
-            if not self._safe_write("\r\n"):
-                return
-            self._write_prompt()
+            self._schedule_banner()
         except Exception as e:
             print(f"[honeypot][{self.session_id}] error in session_started: {e}")
 
     def terminal_size_changed(self, width, height, pixwidth, pixheight):
         print(f"[honeypot][{self.session_id}] terminal resized: {width}x{height}")
-        pass
 
     def pty_requested(self, *args, **kwargs):
         """Accept any pty_requested signature"""
@@ -377,43 +387,37 @@ class HoneypotServer(asyncssh.SSHServer):
             print(f"[honeypot][{self.conn_id}] connection closed cleanly")
 
     def begin_auth(self, username):
-        """Begin authentication process"""
         print(
             f"[honeypot][{self.conn_id}] authentication attempt for user '{username}'"
         )
         return True
 
     def password_auth_supported(self):
-        """Enable password authentication"""
         return True
 
     def kbdint_auth_supported(self):
-        """Disable keyboard-interactive authentication"""
         return False
 
     def public_key_auth_supported(self):
-        """Disable public key authentication"""
         return False
 
     def validate_password(self, username, password):
-        """Validate password against configured credentials"""
         print(f"[honeypot][{self.conn_id}] login attempt: {username}:{password}")
 
         is_valid = username == VALID_USERNAME and password == VALID_PASSWORD
 
         if is_valid:
             print(
-                f"[honeypot][{self.conn_id}] ✓ authentication successful for '{username}'"
+                f"[honeypot][{self.conn_id}] authentication successful for '{username}'"
             )
         else:
             print(
-                f"[honeypot][{self.conn_id}] ✗ authentication failed for '{username}'"
+                f"[honeypot][{self.conn_id}] authentication failed for '{username}'"
             )
 
         return is_valid
 
     def session_requested(self):
-        """When SSH client requests a session"""
         session_id = str(uuid.uuid4())[:8]
         return HoneypotSession(session_id)
 
@@ -453,10 +457,8 @@ async def start_server():
             PORT,
             server_host_keys=["ssh_host_key"],
         )
-        print(f"[honeypot] ✅ listening on {HOST}:{PORT}")
-
+        print(f"[honeypot] listening on {HOST}:{PORT}")
         await asyncio.Future()
-
     except (OSError, asyncssh.Error) as exc:
         print(f"[honeypot] server failed to start: {exc}")
 

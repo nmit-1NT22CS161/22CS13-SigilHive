@@ -7,6 +7,8 @@ No hardcoded values should exist elsewhere.
 
 import os
 
+RL_STORAGE_DIR = os.getenv("RL_STORAGE_DIR", "storage")
+
 # ==============================================================================
 # Q-LEARNING HYPERPARAMETERS
 # ==============================================================================
@@ -20,7 +22,7 @@ RL_CONFIG = {
     "epsilon_min": 0.01,  # Minimum exploration rate (1% random)
     "epsilon_decay": 0.9995,  # Decay rate per action
     # Persistence
-    "q_table_path": "storage/q_table.pkl",
+    "q_table_path": os.path.join(RL_STORAGE_DIR, "q_table.pkl"),
     "save_interval": 100,  # Save Q-table every N updates
     # Default Q-value for unseen states
     "default_q_value": 0.0,
@@ -35,10 +37,10 @@ REWARD_CONFIG = {
     # Positive rewards (encourage engagement)
     "alpha": 1.0,  # Weight for session duration increase
     "beta": 2.0,  # Weight for unique commands/queries
-    "engagement_step": 4.0,  # Reward when the attacker sends another interaction
+    "engagement_step": 1.5,  # Reward when the attacker stays engaged
     # Negative rewards (penalize mistakes)
-    "gamma1": 2.0,  # Penalty for honeypot detection
-    "gamma2": 2.0,  # Penalty for early termination
+    "gamma1": 5.0,  # Penalty for honeypot detection
+    "gamma2": 5.0,  # Penalty for early termination
     # Protocol-specific bonuses
     "ssh_file_access_bonus": 2.0,
     "ssh_privesc_bonus": 3.0,
@@ -49,6 +51,14 @@ REWARD_CONFIG = {
     "db_table_enum_bonus": 2.0,
     "db_injection_attempt_bonus": 1.5,
     "db_honeytoken_bonus": 5.0,
+    # Response-quality shaping
+    "quality_weight": 1.5,
+    "honeytoken_reward": 2.0,
+    "deception_reward": 1.0,
+    "empty_response_penalty": 4.0,
+    "disconnect_penalty": 3.0,
+    "benign_deception_penalty": 1.5,
+    "suspicious_miss_penalty": 2.0,
 }
 
 
@@ -65,6 +75,7 @@ STATE_BUCKETS = {
     "unique_commands": [3, 10],  # Number of unique actions
     "session_duration": [60, 300],  # Seconds (1 min, 5 min)
     "error_ratio": [0.3, 0.7],  # Ratio of failed operations
+    "response_quality": [0.5, 4.0],  # Heuristic quality score
 }
 
 
@@ -111,7 +122,7 @@ PROTOCOL_SETTINGS = {
 # ==============================================================================
 
 LOGGING_CONFIG = {
-    "session_log_dir": "storage/session_logs",
+    "session_log_dir": os.path.join(RL_STORAGE_DIR, "session_logs"),
     "log_format": "jsonl",  # JSON Lines format
     "max_session_logs": 1000,  # Keep last N sessions per protocol
     "log_rotation_size_mb": 100,  # Rotate logs at this size

@@ -6,6 +6,7 @@ import asyncio
 from typing import Any, Callable, Dict, List, Optional
 from collections import defaultdict
 from confluent_kafka import Producer, Consumer, KafkaException
+from confluent_kafka.admin import AdminClient, NewTopic
 
 
 def log(message: str):
@@ -42,6 +43,7 @@ class HoneypotKafkaManager:
             "bootstrap.servers": bootstrap_servers,
             "group.id": "honeypot-tracker",
             "auto.offset.reset": "earliest",
+            "allow.auto.create.topics": True,
         }
 
         self.topics: Optional[List[str]] = None
@@ -49,6 +51,7 @@ class HoneypotKafkaManager:
         self.enabled = False
         self.producer = None
         self.consumer = None
+        self.admin = None
         self.message_count = 0
 
         # FIX: per-topic callback registry.
@@ -63,6 +66,7 @@ class HoneypotKafkaManager:
                 log(f"🔌 Connection attempt {attempt + 1}/{max_retries}...")
                 self.producer = Producer(self.producer_config)
                 self.consumer = Consumer(self.consumer_config)
+                self.admin = AdminClient({"bootstrap.servers": bootstrap_servers})
                 self.producer.list_topics(timeout=5)
                 self.enabled = True
                 log(f"✅ [Kafka Manager] Connected to Kafka at {bootstrap_servers}")
@@ -109,6 +113,37 @@ class HoneypotKafkaManager:
             except Exception as e:
                 log(f"❌ [Kafka] Handler error on topic '{topic}': {e}")
 
+    def _ensure_topics_exist(self, topics: List[str], partitions: int = 1) -> None:
+        """Create missing topics before producers/consumers use them."""
+        if not self.enabled or self.admin is None:
+            return
+
+        try:
+            metadata = self.admin.list_topics(timeout=5)
+            existing_topics = set(metadata.topics.keys())
+        except Exception as e:
+            log(f"⚠️ [Kafka Topics] Could not fetch metadata: {e}")
+            return
+
+        missing_topics = [topic for topic in topics if topic not in existing_topics]
+        if not missing_topics:
+            return
+
+        try:
+            futures = self.admin.create_topics(
+                [NewTopic(topic, num_partitions=partitions, replication_factor=1) for topic in missing_topics]
+            )
+            for topic, future in futures.items():
+                try:
+                    future.result()
+                    log(f"🆕 [Kafka Topics] Created topic '{topic}'")
+                except Exception as exc:
+                    error_text = str(exc)
+                    if "TOPIC_ALREADY_EXISTS" not in error_text:
+                        log(f"⚠️ [Kafka Topics] Failed creating '{topic}': {exc}")
+        except Exception as e:
+            log(f"⚠️ [Kafka Topics] Topic creation failed: {e}")
+
     # ──────────────────────────────────────────────────────────────────
     # Unchanged producer helpers
     # ──────────────────────────────────────────────────────────────────
@@ -126,6 +161,7 @@ class HoneypotKafkaManager:
         if not self.enabled or self.producer is None:
             return
         try:
+            self._ensure_topics_exist([topic])
             if isinstance(value, dict):
                 value_bytes = json.dumps(value).encode("utf-8")
             elif isinstance(value, str):
@@ -151,6 +187,7 @@ class HoneypotKafkaManager:
     ):
         if not self.enabled or self.producer is None:
             return
+        self._ensure_topics_exist([topic])
         if isinstance(value, dict):
             payload = value.copy()
         elif isinstance(value, str):
@@ -180,6 +217,7 @@ class HoneypotKafkaManager:
         if not self.enabled or self.consumer is None:
             log("⚠️ [Kafka Subscribe] Kafka not available")
             return
+        self._ensure_topics_exist(topics)
         self.topics = topics
         self.consumer.subscribe(topics)
         log(f"📥 [Kafka Subscribe] Subscribed to: {topics}")

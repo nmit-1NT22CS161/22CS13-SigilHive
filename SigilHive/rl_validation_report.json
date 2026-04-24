@@ -1,0 +1,2734 @@
+{
+  "created_at": "2026-04-24T18:23:41.032593+00:00",
+  "offline_checks": [
+    {
+      "name": "state_extraction",
+      "passed": true,
+      "details": {
+        "ssh_state": [
+          1,
+          1,
+          2,
+          0,
+          1,
+          0,
+          0
+        ],
+        "http_state": [
+          1,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "database_state": [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "reward_shaping",
+      "passed": true,
+      "details": {
+        "positive_reward": 434.5,
+        "negative_reward": -10.0
+      }
+    },
+    {
+      "name": "q_learning_update",
+      "passed": true,
+      "details": {
+        "updated_q": 1.0,
+        "expected_q": 1.0,
+        "reloaded_q": 1.0,
+        "epsilon": 0.4,
+        "saved_exists": true
+      }
+    },
+    {
+      "name": "action_gating",
+      "passed": true,
+      "details": {
+        "safe_actions": [
+          "REALISTIC_RESPONSE",
+          "DECEPTIVE_RESOURCE",
+          "RESPONSE_DELAY",
+          "FAKE_VULNERABILITY"
+        ],
+        "risky_actions": [
+          "REALISTIC_RESPONSE",
+          "DECEPTIVE_RESOURCE",
+          "RESPONSE_DELAY",
+          "MISLEADING_SUCCESS",
+          "FAKE_VULNERABILITY",
+          "TERMINATE_SESSION"
+        ]
+      }
+    }
+  ],
+  "docker_rl_before": {
+    "http": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 54,
+      "epsilon": 0.7948853455740398,
+      "update_count": 459,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 107,
+        "DECEPTIVE_RESOURCE": 111,
+        "RESPONSE_DELAY": 148,
+        "MISLEADING_SUCCESS": 53,
+        "FAKE_VULNERABILITY": 115,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.430885822469506,
+      "q_mean": 2.2457687386401233,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 13,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 11,
+        "MISLEADING_SUCCESS": 5
+      }
+    },
+    "ssh": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 54,
+      "epsilon": 0.7948853455740398,
+      "update_count": 459,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 107,
+        "DECEPTIVE_RESOURCE": 111,
+        "RESPONSE_DELAY": 148,
+        "MISLEADING_SUCCESS": 53,
+        "FAKE_VULNERABILITY": 115,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.430885822469506,
+      "q_mean": 2.2457687386401233,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 13,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 11,
+        "MISLEADING_SUCCESS": 5
+      }
+    },
+    "database": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 54,
+      "epsilon": 0.7948853455740398,
+      "update_count": 459,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 107,
+        "DECEPTIVE_RESOURCE": 111,
+        "RESPONSE_DELAY": 148,
+        "MISLEADING_SUCCESS": 53,
+        "FAKE_VULNERABILITY": 115,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.430885822469506,
+      "q_mean": 2.2457687386401233,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 13,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 11,
+        "MISLEADING_SUCCESS": 5
+      }
+    }
+  },
+  "docker_rl_after": {
+    "http": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 57,
+      "epsilon": 0.7407626428726788,
+      "update_count": 600,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 138,
+        "DECEPTIVE_RESOURCE": 135,
+        "RESPONSE_DELAY": 201,
+        "MISLEADING_SUCCESS": 62,
+        "FAKE_VULNERABILITY": 141,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.349122085078818,
+      "q_mean": 2.8487331670004266,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 14,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 13,
+        "MISLEADING_SUCCESS": 5
+      }
+    },
+    "ssh": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 57,
+      "epsilon": 0.7407626428726788,
+      "update_count": 600,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 138,
+        "DECEPTIVE_RESOURCE": 135,
+        "RESPONSE_DELAY": 201,
+        "MISLEADING_SUCCESS": 62,
+        "FAKE_VULNERABILITY": 141,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.349122085078818,
+      "q_mean": 2.8487331670004266,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 14,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 13,
+        "MISLEADING_SUCCESS": 5
+      }
+    },
+    "database": {
+      "exists": true,
+      "path": "/app/rl_shared/q_table.pkl",
+      "q_table_size": 57,
+      "epsilon": 0.7407626428726788,
+      "update_count": 600,
+      "action_counts": {
+        "REALISTIC_RESPONSE": 138,
+        "DECEPTIVE_RESOURCE": 135,
+        "RESPONSE_DELAY": 201,
+        "MISLEADING_SUCCESS": 62,
+        "FAKE_VULNERABILITY": 141,
+        "TERMINATE_SESSION": 0
+      },
+      "q_min": -5.036177654806641,
+      "q_max": 25.349122085078818,
+      "q_mean": 2.8487331670004266,
+      "learned_actions": {
+        "FAKE_VULNERABILITY": 13,
+        "RESPONSE_DELAY": 14,
+        "DECEPTIVE_RESOURCE": 12,
+        "REALISTIC_RESPONSE": 13,
+        "MISLEADING_SUCCESS": 5
+      }
+    }
+  },
+  "baseline_phase": {
+    "http": {
+      "observations": [
+        {
+          "probe": "/",
+          "ok": true,
+          "status": 200,
+          "elapsed": 1.972891699999309,
+          "score": {
+            "bytes": 12023,
+            "lines": 422,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 8.0,
+            "fingerprint": "de2e730828f27cf2"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+        },
+        {
+          "probe": "/admin",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.06571359999725246,
+          "score": {
+            "bytes": 3654,
+            "lines": 59,
+            "honeytoken_hits": 1,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 18.0,
+            "fingerprint": "fa72dfd2d90feb1f"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Admin Panel - ShopHub</title>\n    <style>\n        body { font-family: 'Segoe UI', Tahom"
+        },
+        {
+          "probe": "/.env",
+          "ok": true,
+          "status": 404,
+          "elapsed": 0.06876790000023902,
+          "score": {
+            "bytes": 4848,
+            "lines": 149,
+            "honeytoken_hits": 3,
+            "deception_markers": 0,
+            "error_markers": 1,
+            "engagement_score": 27.0,
+            "fingerprint": "0b62da5cfab2df69"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 - Page Not Found | ShopHub</title>\n    <style>\n        @import url('https://fonts.g"
+        },
+        {
+          "probe": "/.git/config",
+          "ok": true,
+          "status": 404,
+          "elapsed": 1.5592269000007946,
+          "score": {
+            "bytes": 2839,
+            "lines": 90,
+            "honeytoken_hits": 1,
+            "deception_markers": 0,
+            "error_markers": 1,
+            "engagement_score": 13.0,
+            "fingerprint": "fb5bd62d41833df5"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 Not Found - ShopHub E-commerce</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" typ"
+        },
+        {
+          "probe": "/backup/database_backup.sql",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.14001960000314284,
+          "score": {
+            "bytes": 3660,
+            "lines": 118,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 1,
+            "engagement_score": 6.0,
+            "fingerprint": "8eaf0484e2761073"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Page Not Found - ShopHub</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x"
+        },
+        {
+          "probe": "/api/config",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.0746982000018761,
+          "score": {
+            "bytes": 64,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.533,
+            "fingerprint": "74bc4ee8913ff1b5"
+          },
+          "preview": "{\"success\": true, \"message\": \"Operation completed successfully\"}"
+        }
+      ],
+      "summary": {
+        "count": 6,
+        "ok": 6,
+        "avg_engagement": 12.088833333333334,
+        "avg_bytes": 4514.666666666667,
+        "honeytoken_hits": 5,
+        "deception_markers": 1,
+        "error_markers": 3,
+        "unique_fingerprints": 6
+      }
+    },
+    "ssh": {
+      "observations": [
+        {
+          "probe": "whoami",
+          "ok": true,
+          "elapsed": 1.564656800001103,
+          "score": {
+            "bytes": 34,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.283,
+            "fingerprint": "d2205d067100b15a"
+          },
+          "preview": "shophub@shophub-prod-01:~$ shophub"
+        },
+        {
+          "probe": "pwd",
+          "ok": true,
+          "elapsed": 0.06357180000122753,
+          "score": {
+            "bytes": 40,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.333,
+            "fingerprint": "95ddd19ca806c728"
+          },
+          "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+        },
+        {
+          "probe": "ls -la",
+          "ok": true,
+          "elapsed": 0.170084900000802,
+          "score": {
+            "bytes": 939,
+            "lines": 16,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 7.825,
+            "fingerprint": "1d13d1f5d2e24418"
+          },
+          "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     1150 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     3798 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+        },
+        {
+          "probe": "find / -name '*.key' 2>/dev/null",
+          "ok": true,
+          "elapsed": 0.05937359999734326,
+          "score": {
+            "bytes": 56,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 2,
+            "engagement_score": -3.533,
+            "fingerprint": "a945cf796d52cc4d"
+          },
+          "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+        },
+        {
+          "probe": "sudo -l",
+          "ok": true,
+          "elapsed": 0.5664963999988686,
+          "score": {
+            "bytes": 56,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 2,
+            "engagement_score": -3.533,
+            "fingerprint": "0c8b42721f3e9bf9"
+          },
+          "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+        },
+        {
+          "probe": "cat .env",
+          "ok": true,
+          "elapsed": 0.13032179999936488,
+          "score": {
+            "bytes": 777,
+            "lines": 33,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 0,
+            "engagement_score": 29.475,
+            "fingerprint": "b9864cd082a00cef"
+          },
+          "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+        }
+      ],
+      "summary": {
+        "count": 6,
+        "ok": 6,
+        "avg_engagement": 5.141666666666667,
+        "avg_bytes": 317,
+        "honeytoken_hits": 2,
+        "deception_markers": 3,
+        "error_markers": 4,
+        "unique_fingerprints": 6
+      }
+    },
+    "database": {
+      "observations": [
+        {
+          "probe": "SHOW DATABASES",
+          "ok": true,
+          "elapsed": 3.266378699998313,
+          "score": {
+            "bytes": 45,
+            "lines": 4,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.375,
+            "fingerprint": "91e59940030ccacb"
+          },
+          "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+        },
+        {
+          "probe": "SHOW TABLES",
+          "ok": true,
+          "elapsed": 0.1608319000006304,
+          "score": {
+            "bytes": 110,
+            "lines": 12,
+            "honeytoken_hits": 0,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 3.917,
+            "fingerprint": "9a0d369efee21105"
+          },
+          "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+        },
+        {
+          "probe": "SELECT * FROM admin_users LIMIT 3",
+          "ok": true,
+          "elapsed": 3.2034893999989436,
+          "score": {
+            "bytes": 398,
+            "lines": 3,
+            "honeytoken_hits": 3,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 24.317,
+            "fingerprint": "8f97276d50723f62"
+          },
+          "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+        },
+        {
+          "probe": "SELECT * FROM payments LIMIT 3",
+          "ok": true,
+          "elapsed": 1.546391500000027,
+          "score": {
+            "bytes": 93,
+            "lines": 2,
+            "honeytoken_hits": 2,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 14.775,
+            "fingerprint": "2725ec4e15183911"
+          },
+          "preview": "1\t4532-HONEYTOKEN-001-1234\t123\t12/26\tJohn Doe\n2\t5425-HONEYTOKEN-002-5678\t456\t03/27\tJane Smith"
+        },
+        {
+          "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+          "ok": false,
+          "elapsed": 2.1786658999990323,
+          "score": {
+            "bytes": 183,
+            "lines": 2,
+            "honeytoken_hits": 0,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 4.525,
+            "fingerprint": "ff6b2a490e2f7ab9"
+          },
+          "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+        }
+      ],
+      "summary": {
+        "count": 5,
+        "ok": 4,
+        "avg_engagement": 10.846,
+        "avg_bytes": 161.5,
+        "honeytoken_hits": 5,
+        "deception_markers": 1,
+        "error_markers": 0,
+        "unique_fingerprints": 4
+      }
+    }
+  },
+  "training_rounds": [
+    {
+      "round": 1,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.06740399999762303,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11640489999990677,
+              "score": {
+                "bytes": 1759,
+                "lines": 40,
+                "honeytoken_hits": 6,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 59.0,
+                "fingerprint": "65e81f82fdb82e3a"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head>\n        <title>ShopHub Admin Dashboard</title>\n        <style>\n            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }\n            .container { background: white; padding"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.23428749999948195,
+              "score": {
+                "bytes": 749,
+                "lines": 28,
+                "honeytoken_hits": 10,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 85.242,
+                "fingerprint": "5a6899d303cf5dd8"
+              },
+              "preview": "# ShopHub Production Environment\n    NODE_ENV=production\n    PORT=3000\n\n    # Database\n    DB_HOST=prod-mysql.internal\n    DB_USER=shophub_prod_HONEYTOKEN_001\n    DB_PASS=Pr0dP@ssw0rd_HONEYTOKEN_ENV_001\n    DB_NAME=shophub_production\n\n    #"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.1425505000006524,
+              "score": {
+                "bytes": 449,
+                "lines": 14,
+                "honeytoken_hits": 2,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 17.742,
+                "fingerprint": "0a1a25b1709df06f"
+              },
+              "preview": "[core]\n        repositoryformatversion = 0\n        filemode = true\n        bare = false\n        logallrefupdates = true\n    [remote \"origin\"]\n        url = https://deploy_HONEYTOKEN:ghp_HONEYTOKEN_GITHUB_PAT_001@github.com/shophub/productio"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11671650000062073,
+              "score": {
+                "bytes": 632,
+                "lines": 16,
+                "honeytoken_hits": 6,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 53.267,
+                "fingerprint": "4496bdfd167e0989"
+              },
+              "preview": "-- ShopHub Database Backup\n    -- Generated: 2025-01-15 10:30:00\n    -- \n    -- Admin Credentials:\n    -- Username: admin_HONEYTOKEN, Password: B@ckup_P@ss_HONEYTOKEN_013\n    -- \n    USE shophub_production;\n\n    INSERT INTO admin_users (id,"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 404,
+              "elapsed": 0.0648631000003661,
+              "score": {
+                "bytes": 283,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 0.358,
+                "fingerprint": "07a4c00a7f9fbcd5"
+              },
+              "preview": "{\"status\":404,\"message\":\"API endpoint not found for '/api/config'. Please check the documentation.\",\"errorCode\":\"NOT_FOUND\",\"timestamp\":\"2024-07-29T14:32:05.187Z\",\"path\":\"/api/config\",\"details\":\"The requested resource could not be located o"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 37.268166666666666,
+            "avg_bytes": 2649.1666666666665,
+            "honeytoken_hits": 24,
+            "deception_markers": 8,
+            "error_markers": 1,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 0.07883159999983036,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 1.7265053000010084,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 0.11247029999867664,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "4fbe69a307ea1b17"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     3300 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub      880 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 0.2104390999993484,
+              "score": {
+                "bytes": 152,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 10.267,
+                "fingerprint": "41f22d2a546d9c7d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub/.ssh/id_rsa\n/home/shophub/shophub/config/api_keys.json\n/opt/secrets/database.key\n/etc/shophub/stripe_secret.key"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.11697279999862076,
+              "score": {
+                "bytes": 244,
+                "lines": 5,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 5.033,
+                "fingerprint": "d4a64d239e22543c"
+              },
+              "preview": "shophub@shophub-prod-01:~$ User shophub may run the following commands on shophub-server:\n    (ALL) NOPASSWD: /usr/bin/systemctl restart shophub\n    (ALL) NOPASSWD: /usr/bin/docker-compose\n    (ALL) NOPASSWD: /bin/bash\n    (root) /usr/bin/m"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 1.9761366999991878,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 8.869333333333334,
+            "avg_bytes": 364.3333333333333,
+            "honeytoken_hits": 2,
+            "deception_markers": 7,
+            "error_markers": 0,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 4.452142000001913,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 1.7056004000005487,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 0.24929460000203107,
+              "score": {
+                "bytes": 398,
+                "lines": 3,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 24.317,
+                "fingerprint": "8f97276d50723f62"
+              },
+              "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 12.712847200000397,
+              "score": {
+                "bytes": 250,
+                "lines": 3,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 2.083,
+                "fingerprint": "17d0b07db813c733"
+              },
+              "preview": "1\t112\t149.95\tStripe\ttxn_[REDACTED]1P8gHhLkdVoVqg7c9fJkLzWb\tCompleted\t2024-05-19 11:21:45\n2\t113\t78.2\tPayPal\tPAYID-MRY7654321098765432109876\tCompleted\t2024-05-19 14:05:11\n3\t114\t215.0\tCredit Card\tch_3P8gJkLkdVoVqg7c1aBcDeFg\tCompleted\t2024-05-2"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 2.1948727999988478,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 7.673,
+            "avg_bytes": 200.75,
+            "honeytoken_hits": 3,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    },
+    {
+      "round": 2,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.07554050000180723,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.9190167000015208,
+              "score": {
+                "bytes": 3654,
+                "lines": 59,
+                "honeytoken_hits": 1,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 18.0,
+                "fingerprint": "fa72dfd2d90feb1f"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Admin Panel - ShopHub</title>\n    <style>\n        body { font-family: 'Segoe UI', Tahom"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11377070000162348,
+              "score": {
+                "bytes": 749,
+                "lines": 28,
+                "honeytoken_hits": 10,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 85.242,
+                "fingerprint": "5a6899d303cf5dd8"
+              },
+              "preview": "# ShopHub Production Environment\n    NODE_ENV=production\n    PORT=3000\n\n    # Database\n    DB_HOST=prod-mysql.internal\n    DB_USER=shophub_prod_HONEYTOKEN_001\n    DB_PASS=Pr0dP@ssw0rd_HONEYTOKEN_ENV_001\n    DB_NAME=shophub_production\n\n    #"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 404,
+              "elapsed": 0.06794860000081826,
+              "score": {
+                "bytes": 2839,
+                "lines": 90,
+                "honeytoken_hits": 1,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 13.0,
+                "fingerprint": "fb5bd62d41833df5"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 Not Found - ShopHub E-commerce</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" typ"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11383550000027753,
+              "score": {
+                "bytes": 632,
+                "lines": 16,
+                "honeytoken_hits": 6,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 53.267,
+                "fingerprint": "4496bdfd167e0989"
+              },
+              "preview": "-- ShopHub Database Backup\n    -- Generated: 2025-01-15 10:30:00\n    -- \n    -- Admin Credentials:\n    -- Username: admin_HONEYTOKEN, Password: B@ckup_P@ss_HONEYTOKEN_013\n    -- \n    USE shophub_production;\n\n    INSERT INTO admin_users (id,"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11520049999671755,
+              "score": {
+                "bytes": 362,
+                "lines": 14,
+                "honeytoken_hits": 6,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 54.017,
+                "fingerprint": "9d1c31ed84b6928b"
+              },
+              "preview": "{\n  \"stripe\": {\n    \"public_key\": \"pk_live_HONEYTOKEN_STRIPE_PUBLIC\",\n    \"secret_key\": \"sk_live_HONEYTOKEN_STRIPE_SECRET_008\"\n  },\n  \"aws\": {\n    \"access_key_id\": \"AKIA_HONEYTOKEN_AWS_009\",\n    \"secret_access_key\": \"wJalrXUtnFEMI_HONEYTOKE"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 38.58766666666667,
+            "avg_bytes": 3376.5,
+            "honeytoken_hits": 24,
+            "deception_markers": 9,
+            "error_markers": 1,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 1.8800640999979805,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 1.38261330000023,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 0.1109861999975692,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "8dc24d15952f3f95"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub      901 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     2072 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 0.061088000002200715,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "a945cf796d52cc4d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.060074100001656916,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "0c8b42721f3e9bf9"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 1.91243570000006,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 5.141666666666667,
+            "avg_bytes": 317,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 4,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 1.0014160999999149,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 0.3363360000003013,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 1.9393070999976771,
+              "score": {
+                "bytes": 398,
+                "lines": 3,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 24.317,
+                "fingerprint": "8f97276d50723f62"
+              },
+              "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 11.814876000000368,
+              "score": {
+                "bytes": 223,
+                "lines": 3,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 1.858,
+                "fingerprint": "2a9ecca5af54b9de"
+              },
+              "preview": "1\t101\t89.99\tCredit Card\tch_3qBvXzL2eZvKYlo21sF7\tsucceeded\t2024-07-15 11:22:09\n2\t102\t154.5\tPayPal\tPAYID-MZY12345AB678901C\tcompleted\t2024-08-01 18:45:12\n3\t103\t29.95\tStripe\tpi_3qCwYgL2eZvKYlo21tH8\tsucceeded\t2024-08-22 09:05:31"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 2.563854200001515,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 7.61675,
+            "avg_bytes": 194,
+            "honeytoken_hits": 3,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    },
+    {
+      "round": 3,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.06779610000012326,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.06563069999901927,
+              "score": {
+                "bytes": 3654,
+                "lines": 59,
+                "honeytoken_hits": 1,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 18.0,
+                "fingerprint": "fa72dfd2d90feb1f"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Admin Panel - ShopHub</title>\n    <style>\n        body { font-family: 'Segoe UI', Tahom"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 404,
+              "elapsed": 1.8280183000024408,
+              "score": {
+                "bytes": 4848,
+                "lines": 149,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 27.0,
+                "fingerprint": "0b62da5cfab2df69"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 - Page Not Found | ShopHub</title>\n    <style>\n        @import url('https://fonts.g"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.12899140000081388,
+              "score": {
+                "bytes": 473,
+                "lines": 14,
+                "honeytoken_hits": 0,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 9.942,
+                "fingerprint": "11bd45f5d89f3ffe"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head><title>Index of /.git/config</title></head>\n    <body>\n    <h1>Index of /.git/config</h1>\n    <ul>\n    <li><a href=\"database_backup.sql\">database_backup.sql</a> - 2.4 MB</li>\n    <li><a href=\"credentials"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.10702600000149687,
+              "score": {
+                "bytes": 3660,
+                "lines": 118,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 6.0,
+                "fingerprint": "8eaf0484e2761073"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Page Not Found - ShopHub</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11542270000063581,
+              "score": {
+                "bytes": 362,
+                "lines": 14,
+                "honeytoken_hits": 6,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 54.017,
+                "fingerprint": "9d1c31ed84b6928b"
+              },
+              "preview": "{\n  \"stripe\": {\n    \"public_key\": \"pk_live_HONEYTOKEN_STRIPE_PUBLIC\",\n    \"secret_key\": \"sk_live_HONEYTOKEN_STRIPE_SECRET_008\"\n  },\n  \"aws\": {\n    \"access_key_id\": \"AKIA_HONEYTOKEN_AWS_009\",\n    \"secret_access_key\": \"wJalrXUtnFEMI_HONEYTOKE"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 20.493166666666667,
+            "avg_bytes": 4170,
+            "honeytoken_hits": 10,
+            "deception_markers": 6,
+            "error_markers": 2,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 0.07131780000054277,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 0.06894450000254437,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 0.124977299998136,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "cdccef3e3ca45b87"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     3085 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     2708 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 0.07401689999824157,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "a945cf796d52cc4d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.0830619000007573,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "0c8b42721f3e9bf9"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 0.11528360000011162,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 5.141666666666667,
+            "avg_bytes": 317,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 4,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 3.6534939000011946,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 1.9826828999975987,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 1.5793140999994648,
+              "score": {
+                "bytes": 125,
+                "lines": 2,
+                "honeytoken_hits": 2,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 15.042,
+                "fingerprint": "0a04dc9ee57d88fd"
+              },
+              "preview": "1\tadmin\t$2b$10$HONEYTOKEN_HASH_001\tadmin@shophub.com\tsuperuser\n2\tdbadmin\t$2b$10$HONEYTOKEN_HASH_002\tdbadmin@shophub.com\tadmin"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 14.261045200000808,
+              "score": {
+                "bytes": 234,
+                "lines": 3,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 1.95,
+                "fingerprint": "4321fe40d22c454d"
+              },
+              "preview": "1\t101\t149.98\tCredit Card\ttxn_[REDACTED]1P9aBcDEfghIJKLMnopqrs\tCompleted\t2024-05-11 14:22:09\n2\t102\t45.5\tPayPal\t8WM45921GH783492P\tCompleted\t2024-05-12 09:15:34\n3\t103\t212.75\tStripe\tpi_3P9cDeFGhIjKlMnOpQrStUv\tCompleted\t2024-05-12 18:45:11"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 0.3106603999985964,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 5.321,
+            "avg_bytes": 128.5,
+            "honeytoken_hits": 2,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    },
+    {
+      "round": 4,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.07212829999843962,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11927019999711774,
+              "score": {
+                "bytes": 1759,
+                "lines": 40,
+                "honeytoken_hits": 6,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 59.0,
+                "fingerprint": "65e81f82fdb82e3a"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head>\n        <title>ShopHub Admin Dashboard</title>\n        <style>\n            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }\n            .container { background: white; padding"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11525759999858565,
+              "score": {
+                "bytes": 749,
+                "lines": 28,
+                "honeytoken_hits": 10,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 85.242,
+                "fingerprint": "5a6899d303cf5dd8"
+              },
+              "preview": "# ShopHub Production Environment\n    NODE_ENV=production\n    PORT=3000\n\n    # Database\n    DB_HOST=prod-mysql.internal\n    DB_USER=shophub_prod_HONEYTOKEN_001\n    DB_PASS=Pr0dP@ssw0rd_HONEYTOKEN_ENV_001\n    DB_NAME=shophub_production\n\n    #"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11435069999788539,
+              "score": {
+                "bytes": 449,
+                "lines": 14,
+                "honeytoken_hits": 2,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 17.742,
+                "fingerprint": "0a1a25b1709df06f"
+              },
+              "preview": "[core]\n        repositoryformatversion = 0\n        filemode = true\n        bare = false\n        logallrefupdates = true\n    [remote \"origin\"]\n        url = https://deploy_HONEYTOKEN:ghp_HONEYTOKEN_GITHUB_PAT_001@github.com/shophub/productio"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11801790000026813,
+              "score": {
+                "bytes": 503,
+                "lines": 14,
+                "honeytoken_hits": 0,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 10.192,
+                "fingerprint": "0b5b370b158548b4"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head><title>Index of /backup/database_backup.sql</title></head>\n    <body>\n    <h1>Index of /backup/database_backup.sql</h1>\n    <ul>\n    <li><a href=\"database_backup.sql\">database_backup.sql</a> - 2.4 MB</li"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 404,
+              "elapsed": 1.4805219999980181,
+              "score": {
+                "bytes": 283,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 0.358,
+                "fingerprint": "07a4c00a7f9fbcd5"
+              },
+              "preview": "{\"status\":404,\"message\":\"API endpoint not found for '/api/config'. Please check the documentation.\",\"errorCode\":\"NOT_FOUND\",\"timestamp\":\"2024-07-29T14:32:05.187Z\",\"path\":\"/api/config\",\"details\":\"The requested resource could not be located o"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 30.089000000000002,
+            "avg_bytes": 2627.6666666666665,
+            "honeytoken_hits": 18,
+            "deception_markers": 8,
+            "error_markers": 1,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 0.06621480000103475,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 0.06279749999885098,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 0.12020040000061272,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "211e8fa599d7faae"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     3568 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     2791 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 0.64342089999991,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "a945cf796d52cc4d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.06080080000174348,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "0c8b42721f3e9bf9"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 0.10996739999973215,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 5.141666666666667,
+            "avg_bytes": 317,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 4,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 1.8704479000007268,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 0.19401170000128332,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 2.06310780000058,
+              "score": {
+                "bytes": 398,
+                "lines": 3,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 24.317,
+                "fingerprint": "8f97276d50723f62"
+              },
+              "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 3.397762700002204,
+              "score": {
+                "bytes": 93,
+                "lines": 2,
+                "honeytoken_hits": 2,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 14.775,
+                "fingerprint": "2725ec4e15183911"
+              },
+              "preview": "1\t4532-HONEYTOKEN-001-1234\t123\t12/26\tJohn Doe\n2\t5425-HONEYTOKEN-002-5678\t456\t03/27\tJane Smith"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 1.9806687999989663,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 10.846,
+            "avg_bytes": 161.5,
+            "honeytoken_hits": 5,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    },
+    {
+      "round": 5,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 1.5911506000011286,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 1.153000799997244,
+              "score": {
+                "bytes": 3654,
+                "lines": 59,
+                "honeytoken_hits": 1,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 18.0,
+                "fingerprint": "fa72dfd2d90feb1f"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Admin Panel - ShopHub</title>\n    <style>\n        body { font-family: 'Segoe UI', Tahom"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.06536569999661879,
+              "score": {
+                "bytes": 4848,
+                "lines": 149,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 27.0,
+                "fingerprint": "0b62da5cfab2df69"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 - Page Not Found | ShopHub</title>\n    <style>\n        @import url('https://fonts.g"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 404,
+              "elapsed": 0.06504430000131833,
+              "score": {
+                "bytes": 2839,
+                "lines": 90,
+                "honeytoken_hits": 1,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 13.0,
+                "fingerprint": "fb5bd62d41833df5"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 Not Found - ShopHub E-commerce</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" typ"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 404,
+              "elapsed": 1.3002543000002333,
+              "score": {
+                "bytes": 3660,
+                "lines": 118,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 6.0,
+                "fingerprint": "8eaf0484e2761073"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Page Not Found - ShopHub</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.11329390000173589,
+              "score": {
+                "bytes": 471,
+                "lines": 14,
+                "honeytoken_hits": 0,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 9.925,
+                "fingerprint": "3fa40c19c4e8404d"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head><title>Index of /api/config</title></head>\n    <body>\n    <h1>Index of /api/config</h1>\n    <ul>\n    <li><a href=\"database_backup.sql\">database_backup.sql</a> - 2.4 MB</li>\n    <li><a href=\"credentials.t"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 13.654166666666667,
+            "avg_bytes": 4582.5,
+            "honeytoken_hits": 5,
+            "deception_markers": 3,
+            "error_markers": 3,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 0.05951350000032107,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 0.059844899999006884,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 0.11052829999971436,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "81c6327918833236"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     3633 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     4056 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 1.64620510000168,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "a945cf796d52cc4d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.06010500000047614,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "0c8b42721f3e9bf9"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 0.11079120000067633,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 5.141666666666667,
+            "avg_bytes": 317,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 4,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 0.28148180000061984,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 1.127736399997957,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 1.1461430999988806,
+              "score": {
+                "bytes": 398,
+                "lines": 3,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 24.317,
+                "fingerprint": "8f97276d50723f62"
+              },
+              "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 13.990840599999501,
+              "score": {
+                "bytes": 226,
+                "lines": 3,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 1.883,
+                "fingerprint": "d960aa4dca414c90"
+              },
+              "preview": "1\t112\t149.95\tStripe\tpi_3qR7tL2eZvKYlo2C1fG8hJkL\tCompleted\t2024-05-18 11:22:09\n2\t113\t45.5\tPayPal\t8E459217GH987654P\tCompleted\t2024-05-19 09:04:31\n3\t114\t212.75\tCredit Card\tch_3qR9bA2eZvKYlo2C0gH4fXyZ\tCompleted\t2024-05-20 16:45:11"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 3.0365043000019796,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 7.623,
+            "avg_bytes": 194.75,
+            "honeytoken_hits": 3,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    },
+    {
+      "round": 6,
+      "protocols": {
+        "http": {
+          "observations": [
+            {
+              "probe": "/",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.16918649999934132,
+              "score": {
+                "bytes": 12023,
+                "lines": 422,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 8.0,
+                "fingerprint": "de2e730828f27cf2"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+            },
+            {
+              "probe": "/admin",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.15378280000004452,
+              "score": {
+                "bytes": 158,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 1.317,
+                "fingerprint": "83d4c123572d1013"
+              },
+              "preview": "<!DOCTYPE html>\n    <html><head><title>Admin Panel</title></head>\n    <body><h1>Admin Panel</h1><p>Access granted. Loading dashboard...</p></body>\n    </html>"
+            },
+            {
+              "probe": "/.env",
+              "ok": true,
+              "status": 404,
+              "elapsed": 0.06741329999931622,
+              "score": {
+                "bytes": 4848,
+                "lines": 149,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 27.0,
+                "fingerprint": "0b62da5cfab2df69"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 - Page Not Found | ShopHub</title>\n    <style>\n        @import url('https://fonts.g"
+            },
+            {
+              "probe": "/.git/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.06714709999869228,
+              "score": {
+                "bytes": 2839,
+                "lines": 90,
+                "honeytoken_hits": 1,
+                "deception_markers": 0,
+                "error_markers": 1,
+                "engagement_score": 13.0,
+                "fingerprint": "fb5bd62d41833df5"
+              },
+              "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 Not Found - ShopHub E-commerce</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" typ"
+            },
+            {
+              "probe": "/backup/database_backup.sql",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.1369577000004938,
+              "score": {
+                "bytes": 632,
+                "lines": 16,
+                "honeytoken_hits": 6,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 53.267,
+                "fingerprint": "4496bdfd167e0989"
+              },
+              "preview": "-- ShopHub Database Backup\n    -- Generated: 2025-01-15 10:30:00\n    -- \n    -- Admin Credentials:\n    -- Username: admin_HONEYTOKEN, Password: B@ckup_P@ss_HONEYTOKEN_013\n    -- \n    USE shophub_production;\n\n    INSERT INTO admin_users (id,"
+            },
+            {
+              "probe": "/api/config",
+              "ok": true,
+              "status": 200,
+              "elapsed": 0.13873400000011316,
+              "score": {
+                "bytes": 471,
+                "lines": 14,
+                "honeytoken_hits": 0,
+                "deception_markers": 2,
+                "error_markers": 0,
+                "engagement_score": 9.925,
+                "fingerprint": "3fa40c19c4e8404d"
+              },
+              "preview": "<!DOCTYPE html>\n    <html>\n    <head><title>Index of /api/config</title></head>\n    <body>\n    <h1>Index of /api/config</h1>\n    <ul>\n    <li><a href=\"database_backup.sql\">database_backup.sql</a> - 2.4 MB</li>\n    <li><a href=\"credentials.t"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 18.7515,
+            "avg_bytes": 3495.1666666666665,
+            "honeytoken_hits": 10,
+            "deception_markers": 4,
+            "error_markers": 2,
+            "unique_fingerprints": 6
+          }
+        },
+        "ssh": {
+          "observations": [
+            {
+              "probe": "whoami",
+              "ok": true,
+              "elapsed": 0.2071620000024268,
+              "score": {
+                "bytes": 34,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.283,
+                "fingerprint": "d2205d067100b15a"
+              },
+              "preview": "shophub@shophub-prod-01:~$ shophub"
+            },
+            {
+              "probe": "pwd",
+              "ok": true,
+              "elapsed": 0.06096120000074734,
+              "score": {
+                "bytes": 40,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.333,
+                "fingerprint": "95ddd19ca806c728"
+              },
+              "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+            },
+            {
+              "probe": "ls -la",
+              "ok": true,
+              "elapsed": 1.9143839999996999,
+              "score": {
+                "bytes": 939,
+                "lines": 16,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 7.825,
+                "fingerprint": "16996e7edda8b330"
+              },
+              "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     1938 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     3332 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+            },
+            {
+              "probe": "find / -name '*.key' 2>/dev/null",
+              "ok": true,
+              "elapsed": 0.061778299997968134,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "a945cf796d52cc4d"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: find: command not found"
+            },
+            {
+              "probe": "sudo -l",
+              "ok": true,
+              "elapsed": 0.058586700000887504,
+              "score": {
+                "bytes": 56,
+                "lines": 1,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 2,
+                "engagement_score": -3.533,
+                "fingerprint": "0c8b42721f3e9bf9"
+              },
+              "preview": "shophub@shophub-prod-01:~$ bash: sudo: command not found"
+            },
+            {
+              "probe": "cat .env",
+              "ok": true,
+              "elapsed": 0.11418819999744301,
+              "score": {
+                "bytes": 777,
+                "lines": 33,
+                "honeytoken_hits": 2,
+                "deception_markers": 3,
+                "error_markers": 0,
+                "engagement_score": 29.475,
+                "fingerprint": "b9864cd082a00cef"
+              },
+              "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+            }
+          ],
+          "summary": {
+            "count": 6,
+            "ok": 6,
+            "avg_engagement": 5.141666666666667,
+            "avg_bytes": 317,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 4,
+            "unique_fingerprints": 6
+          }
+        },
+        "database": {
+          "observations": [
+            {
+              "probe": "SHOW DATABASES",
+              "ok": true,
+              "elapsed": 1.1886051999972551,
+              "score": {
+                "bytes": 45,
+                "lines": 4,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 0.375,
+                "fingerprint": "91e59940030ccacb"
+              },
+              "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+            },
+            {
+              "probe": "SHOW TABLES",
+              "ok": true,
+              "elapsed": 1.4930465000034019,
+              "score": {
+                "bytes": 110,
+                "lines": 12,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 3.917,
+                "fingerprint": "9a0d369efee21105"
+              },
+              "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+            },
+            {
+              "probe": "SELECT * FROM admin_users LIMIT 3",
+              "ok": true,
+              "elapsed": 5.091964899998857,
+              "score": {
+                "bytes": 398,
+                "lines": 3,
+                "honeytoken_hits": 3,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 24.317,
+                "fingerprint": "8f97276d50723f62"
+              },
+              "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+            },
+            {
+              "probe": "SELECT * FROM payments LIMIT 3",
+              "ok": true,
+              "elapsed": 13.211970100001054,
+              "score": {
+                "bytes": 227,
+                "lines": 3,
+                "honeytoken_hits": 0,
+                "deception_markers": 0,
+                "error_markers": 0,
+                "engagement_score": 1.892,
+                "fingerprint": "88ecc2e1dcb6177a"
+              },
+              "preview": "1\t112\t89.5\tStripe\tpi_4kLpQ9j2zXfGvYhW1aBcD\tsucceeded\t2024-05-18 11:45:21\n2\t113\t245.75\tPayPal\t9GH84321MN765432P\tcompleted\t2024-05-19 09:22:05\n3\t114\t42.99\tCredit Card\ttxn_[REDACTED]8uJkLpQ9j2zXfGvYhW\tsucceeded\t2024-05-20 16:01:33"
+            },
+            {
+              "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+              "ok": false,
+              "elapsed": 3.5293232000003627,
+              "score": {
+                "bytes": 183,
+                "lines": 2,
+                "honeytoken_hits": 0,
+                "deception_markers": 1,
+                "error_markers": 0,
+                "engagement_score": 4.525,
+                "fingerprint": "ff6b2a490e2f7ab9"
+              },
+              "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+            }
+          ],
+          "summary": {
+            "count": 5,
+            "ok": 4,
+            "avg_engagement": 7.62525,
+            "avg_bytes": 195,
+            "honeytoken_hits": 3,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "unique_fingerprints": 4
+          }
+        }
+      }
+    }
+  ],
+  "post_training_phase": {
+    "http": {
+      "observations": [
+        {
+          "probe": "/",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.0667522999974608,
+          "score": {
+            "bytes": 12023,
+            "lines": 422,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 8.0,
+            "fingerprint": "de2e730828f27cf2"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ShopHub - Your Online Shopping Destination</title>\n    <link rel=\"icon\" href=\"/favicon."
+        },
+        {
+          "probe": "/admin",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.06527039999855333,
+          "score": {
+            "bytes": 158,
+            "lines": 4,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 1.317,
+            "fingerprint": "83d4c123572d1013"
+          },
+          "preview": "<!DOCTYPE html>\n    <html><head><title>Admin Panel</title></head>\n    <body><h1>Admin Panel</h1><p>Access granted. Loading dashboard...</p></body>\n    </html>"
+        },
+        {
+          "probe": "/.env",
+          "ok": true,
+          "status": 404,
+          "elapsed": 0.07874850000007427,
+          "score": {
+            "bytes": 4848,
+            "lines": 149,
+            "honeytoken_hits": 3,
+            "deception_markers": 0,
+            "error_markers": 1,
+            "engagement_score": 27.0,
+            "fingerprint": "0b62da5cfab2df69"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>404 - Page Not Found | ShopHub</title>\n    <style>\n        @import url('https://fonts.g"
+        },
+        {
+          "probe": "/.git/config",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.17047350000211736,
+          "score": {
+            "bytes": 449,
+            "lines": 14,
+            "honeytoken_hits": 2,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 17.742,
+            "fingerprint": "0a1a25b1709df06f"
+          },
+          "preview": "[core]\n        repositoryformatversion = 0\n        filemode = true\n        bare = false\n        logallrefupdates = true\n    [remote \"origin\"]\n        url = https://deploy_HONEYTOKEN:ghp_HONEYTOKEN_GITHUB_PAT_001@github.com/shophub/productio"
+        },
+        {
+          "probe": "/backup/database_backup.sql",
+          "ok": true,
+          "status": 404,
+          "elapsed": 0.9772561999998288,
+          "score": {
+            "bytes": 3660,
+            "lines": 118,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 1,
+            "engagement_score": 6.0,
+            "fingerprint": "8eaf0484e2761073"
+          },
+          "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Page Not Found - ShopHub</title>\n    <link rel=\"icon\" href=\"/favicon.ico\" type=\"image/x"
+        },
+        {
+          "probe": "/api/config",
+          "ok": true,
+          "status": 200,
+          "elapsed": 0.11620190000030561,
+          "score": {
+            "bytes": 362,
+            "lines": 14,
+            "honeytoken_hits": 6,
+            "deception_markers": 3,
+            "error_markers": 0,
+            "engagement_score": 54.017,
+            "fingerprint": "9d1c31ed84b6928b"
+          },
+          "preview": "{\n  \"stripe\": {\n    \"public_key\": \"pk_live_HONEYTOKEN_STRIPE_PUBLIC\",\n    \"secret_key\": \"sk_live_HONEYTOKEN_STRIPE_SECRET_008\"\n  },\n  \"aws\": {\n    \"access_key_id\": \"AKIA_HONEYTOKEN_AWS_009\",\n    \"secret_access_key\": \"wJalrXUtnFEMI_HONEYTOKE"
+        }
+      ],
+      "summary": {
+        "count": 6,
+        "ok": 6,
+        "avg_engagement": 19.012666666666668,
+        "avg_bytes": 3583.3333333333335,
+        "honeytoken_hits": 11,
+        "deception_markers": 3,
+        "error_markers": 2,
+        "unique_fingerprints": 6
+      }
+    },
+    "ssh": {
+      "observations": [
+        {
+          "probe": "whoami",
+          "ok": true,
+          "elapsed": 0.06169620000218856,
+          "score": {
+            "bytes": 34,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.283,
+            "fingerprint": "d2205d067100b15a"
+          },
+          "preview": "shophub@shophub-prod-01:~$ shophub"
+        },
+        {
+          "probe": "pwd",
+          "ok": true,
+          "elapsed": 0.05908439999984694,
+          "score": {
+            "bytes": 40,
+            "lines": 1,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.333,
+            "fingerprint": "95ddd19ca806c728"
+          },
+          "preview": "shophub@shophub-prod-01:~$ /home/shophub"
+        },
+        {
+          "probe": "ls -la",
+          "ok": true,
+          "elapsed": 0.2005611000022327,
+          "score": {
+            "bytes": 939,
+            "lines": 16,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 7.825,
+            "fingerprint": "a6d9fe468773cc23"
+          },
+          "preview": "shophub@shophub-prod-01:~$ total 60\ndrwxr-xr-x 1 shophub shophub     4096 Jan 15 10:30 shophub\n-rw-r--r-- 1 shophub shophub     1626 Jan 15 10:30 .env\n-rw-r--r-- 1 shophub shophub     3543 Jan 15 10:30 .bashrc\n-rw-r--r-- 1 shophub shophub  "
+        },
+        {
+          "probe": "find / -name '*.key' 2>/dev/null",
+          "ok": true,
+          "elapsed": 0.26687260000107926,
+          "score": {
+            "bytes": 152,
+            "lines": 4,
+            "honeytoken_hits": 0,
+            "deception_markers": 3,
+            "error_markers": 0,
+            "engagement_score": 10.267,
+            "fingerprint": "41f22d2a546d9c7d"
+          },
+          "preview": "shophub@shophub-prod-01:~$ /home/shophub/.ssh/id_rsa\n/home/shophub/shophub/config/api_keys.json\n/opt/secrets/database.key\n/etc/shophub/stripe_secret.key"
+        },
+        {
+          "probe": "sudo -l",
+          "ok": true,
+          "elapsed": 0.10913689999870257,
+          "score": {
+            "bytes": 244,
+            "lines": 5,
+            "honeytoken_hits": 0,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 5.033,
+            "fingerprint": "d4a64d239e22543c"
+          },
+          "preview": "shophub@shophub-prod-01:~$ User shophub may run the following commands on shophub-server:\n    (ALL) NOPASSWD: /usr/bin/systemctl restart shophub\n    (ALL) NOPASSWD: /usr/bin/docker-compose\n    (ALL) NOPASSWD: /bin/bash\n    (root) /usr/bin/m"
+        },
+        {
+          "probe": "cat .env",
+          "ok": true,
+          "elapsed": 0.11203170000226237,
+          "score": {
+            "bytes": 777,
+            "lines": 33,
+            "honeytoken_hits": 2,
+            "deception_markers": 3,
+            "error_markers": 0,
+            "engagement_score": 29.475,
+            "fingerprint": "b9864cd082a00cef"
+          },
+          "preview": "shophub@shophub-prod-01:~$ # ShopHub Environment Variables - PRODUCTION\n# WARNING: Keep this file secure!\n# Server\nNODE_ENV=production\nPORT=3000\nHOST=0.0.0.0\n# Database\nDB_HOST=localhost\nDB_PORT=27017\nDB_NAME=shophub_prod\nDB_USER=shophub_us"
+        }
+      ],
+      "summary": {
+        "count": 6,
+        "ok": 6,
+        "avg_engagement": 8.869333333333334,
+        "avg_bytes": 364.3333333333333,
+        "honeytoken_hits": 2,
+        "deception_markers": 7,
+        "error_markers": 0,
+        "unique_fingerprints": 6
+      }
+    },
+    "database": {
+      "observations": [
+        {
+          "probe": "SHOW DATABASES",
+          "ok": true,
+          "elapsed": 2.0744459999987157,
+          "score": {
+            "bytes": 45,
+            "lines": 4,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 0.375,
+            "fingerprint": "91e59940030ccacb"
+          },
+          "preview": "information_schema\nmysql\nshophub\nshophub_logs"
+        },
+        {
+          "probe": "SHOW TABLES",
+          "ok": true,
+          "elapsed": 1.8170282999999472,
+          "score": {
+            "bytes": 110,
+            "lines": 12,
+            "honeytoken_hits": 0,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 3.917,
+            "fingerprint": "9a0d369efee21105"
+          },
+          "preview": "users\ncategories\nproducts\norders\norder_items\ncart\npayments\nreviews\naddresses\nadmin_users\napi_keys\ncredit_cards"
+        },
+        {
+          "probe": "SELECT * FROM admin_users LIMIT 3",
+          "ok": true,
+          "elapsed": 0.9444656999985455,
+          "score": {
+            "bytes": 398,
+            "lines": 3,
+            "honeytoken_hits": 3,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 24.317,
+            "fingerprint": "8f97276d50723f62"
+          },
+          "preview": "1\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:00:00\t2024-06-01 00:00:00\n2\tsysadmin_001\t$2b$10$HONEYTOKEN_ADMIN_HASH_001xKqW\tsysadmin001@shophub.internal\tsuper_admin\t2025-02-15 08:"
+        },
+        {
+          "probe": "SELECT * FROM payments LIMIT 3",
+          "ok": true,
+          "elapsed": 12.948752399999648,
+          "score": {
+            "bytes": 224,
+            "lines": 3,
+            "honeytoken_hits": 0,
+            "deception_markers": 0,
+            "error_markers": 0,
+            "engagement_score": 1.867,
+            "fingerprint": "34a70502cf47c369"
+          },
+          "preview": "1\t101\t149.98\tStripe\tpi_3qR7tYJkL9sWpZc10xAbCdEf\tcompleted\t2024-05-11 09:22:14\n2\t102\t87.5\tPayPal\t9GH87654MN321098P\tcompleted\t2024-05-12 14:45:03\n3\t103\t215.25\tCredit Card\tch_3qR8uXJkL9sWpZc11yBcDeFg\tpending\t2024-05-13 11:05:59"
+        },
+        {
+          "probe": "SELECT table_name FROM information_schema.tables WHERE table_schema='shophub'",
+          "ok": false,
+          "elapsed": 0.20282070000030217,
+          "score": {
+            "bytes": 183,
+            "lines": 2,
+            "honeytoken_hits": 0,
+            "deception_markers": 1,
+            "error_markers": 0,
+            "engagement_score": 4.525,
+            "fingerprint": "ff6b2a490e2f7ab9"
+          },
+          "preview": "mysql.EXE: [Warning] Using a password on the command line interface can be insecure.\nERROR 1064 (42000) at line 1: ERROR 1146 (42S02): Table 'shophub.information_schema' doesn't exist"
+        }
+      ],
+      "summary": {
+        "count": 5,
+        "ok": 4,
+        "avg_engagement": 7.619,
+        "avg_bytes": 194.25,
+        "honeytoken_hits": 3,
+        "deception_markers": 1,
+        "error_markers": 0,
+        "unique_fingerprints": 4
+      }
+    }
+  },
+  "improvement": {
+    "passed": false,
+    "protocols": {
+      "http": {
+        "evaluated": true,
+        "improved": true,
+        "engagement_delta": 6.924,
+        "honeytoken_delta": 6,
+        "deception_delta": 2,
+        "error_reduction": 1,
+        "q_table_growth": 3,
+        "update_growth": 141,
+        "epsilon_drop": 0.054123
+      },
+      "ssh": {
+        "evaluated": true,
+        "improved": true,
+        "engagement_delta": 3.728,
+        "honeytoken_delta": 0,
+        "deception_delta": 4,
+        "error_reduction": 4,
+        "q_table_growth": 3,
+        "update_growth": 141,
+        "epsilon_drop": 0.054123
+      },
+      "database": {
+        "evaluated": true,
+        "improved": false,
+        "engagement_delta": -3.227,
+        "honeytoken_delta": -2,
+        "deception_delta": 0,
+        "error_reduction": 0,
+        "q_table_growth": 3,
+        "update_growth": 141,
+        "epsilon_drop": 0.054123
+      }
+    },
+    "passed_protocols": 2,
+    "considered_protocols": 3
+  },
+  "notes": [
+    "Live improvement signal was weak or inconsistent. More rounds may be needed, or the current reward/action setup may not yet steer toward better responses."
+  ]
+}

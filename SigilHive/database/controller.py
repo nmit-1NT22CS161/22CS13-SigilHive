@@ -11,7 +11,7 @@ from kafka_manager import HoneypotKafkaManager
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
-from rl_core.logging.structured_logger import log_interaction
+from rl_core.logging.structured_logger import log_interaction, summarize_response_quality
 
 
 def _resolve_file_structure_path() -> Path:
@@ -298,9 +298,19 @@ class ShopHubDBController:
             return
 
         reward = calculate_reward(
-            pending["state"], curr_state, protocol="database", terminal=terminal
+            pending["state"],
+            curr_state,
+            protocol="database",
+            terminal=terminal,
+            session_id=session_id,
         )
-        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        self.rl_agent.update(
+            pending["state"],
+            pending["action"],
+            reward,
+            curr_state,
+            protocol="database",
+        )
         session["pending_rl"] = None
 
         if terminal:
@@ -730,11 +740,22 @@ class ShopHubDBController:
         rl_action = None
 
         if self.rl_enabled:
-            rl_action = self.rl_agent.select_action(state)
+            rl_action = self.rl_agent.select_action(state, protocol="database")
             response = await self._execute_rl_action(rl_action, session_id, event)
         else:
             response = await self._original_query_handler(session_id, event)
 
+        response_text = response.get("response", "")
+        if isinstance(response_text, dict):
+            response_text = json.dumps(response_text)
+        response_quality = summarize_response_quality(
+            response_text,
+            action=rl_action or "BASELINE",
+            protocol="database",
+            suspicious=self._is_suspicious(query),
+            success=self._response_success(response),
+            disconnect=bool(response.get("disconnect")),
+        )
         log_interaction(
             session_id=session_id,
             protocol="database",
@@ -743,7 +764,7 @@ class ShopHubDBController:
                 "intent": intent,
                 "suspicious": self._is_suspicious(query),
                 "current_db": self.db_state.current_db,
-                "response_action": rl_action or "BASELINE",
+                **response_quality,
             },
             success=self._response_success(response),
         )

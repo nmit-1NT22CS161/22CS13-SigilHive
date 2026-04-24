@@ -9,7 +9,7 @@ from kafka_manager import HoneypotKafkaManager
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
-from rl_core.logging.structured_logger import log_interaction
+from rl_core.logging.structured_logger import log_interaction, summarize_response_quality
 
 
 def log(message: str):
@@ -171,9 +171,19 @@ class ShopHubController:
             return
 
         reward = calculate_reward(
-            pending["state"], curr_state, protocol="http", terminal=terminal
+            pending["state"],
+            curr_state,
+            protocol="http",
+            terminal=terminal,
+            session_id=session_id,
         )
-        self.rl_agent.update(pending["state"], pending["action"], reward, curr_state)
+        self.rl_agent.update(
+            pending["state"],
+            pending["action"],
+            reward,
+            curr_state,
+            protocol="http",
+        )
         session["pending_rl"] = None
 
         if terminal:
@@ -447,12 +457,21 @@ class ShopHubController:
 
         rl_action = None
         if self.rl_enabled:
-            rl_action = self.rl_agent.select_action(state)
+            rl_action = self.rl_agent.select_action(state, protocol="http")
             response = await self._execute_rl_action(rl_action, session_id, event)
         else:
             response = await self._original_request_handler(session_id, event)
 
         status_code = int(response.get("status_code", 200))
+        response_quality = summarize_response_quality(
+            response.get("body", ""),
+            action=rl_action or "BASELINE",
+            protocol="http",
+            suspicious=self._is_suspicious(method, path, headers, body),
+            success=status_code < 400,
+            status_code=status_code,
+            disconnect=bool(response.get("disconnect")),
+        )
         log_interaction(
             session_id=session_id,
             protocol="http",
@@ -463,7 +482,7 @@ class ShopHubController:
                 "method": method,
                 "user_agent": headers.get("user-agent", ""),
                 "status_code": status_code,
-                "response_action": rl_action or "BASELINE",
+                **response_quality,
             },
             success=status_code < 400,
         )

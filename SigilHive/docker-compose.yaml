@@ -9,9 +9,12 @@ services:
       - "5555:5555"
     env_file:
       - .env
+    environment:
+      RL_STORAGE_DIR: /app/rl_shared
     volumes:
       - ssh_cache:/app/cache
       - ssh_storage:/app/storage
+      - adv_training_cache:/app/rl_shared
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:
@@ -29,9 +32,12 @@ services:
       - "8443:8443"
     env_file:
       - .env
+    environment:
+      RL_STORAGE_DIR: /app/rl_shared
     volumes:
       - http_cache:/app/cache
       - http_storage:/app/storage
+      - adv_training_cache:/app/rl_shared
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:
@@ -48,9 +54,12 @@ services:
       - "2225:3306"
     env_file:
       - .env
+    environment:
+      RL_STORAGE_DIR: /app/rl_shared
     volumes:
       - db_cache:/app/cache
       - db_storage:/app/storage
+      - adv_training_cache:/app/rl_shared
       - ./kafka_manager.py:/app/kafka_manager.py
       - ./file_structure.py:/app/file_structure.py
     depends_on:

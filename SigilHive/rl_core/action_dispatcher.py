@@ -196,6 +196,33 @@ def get_action_by_index(index: int) -> Optional[str]:
     return None
 
 
+def get_candidate_actions(
+    protocol: Optional[str] = None,
+    state: Optional[tuple] = None,
+    exploration: bool = False,
+) -> list[str]:
+    """
+    Return an action subset appropriate for a protocol/state.
+
+    Exploration intentionally avoids the most disruptive actions so early
+    training doesn't constantly break sessions.
+    """
+    candidates = list(ACTIONS)
+
+    if exploration:
+        candidates = [a for a in candidates if a != "TERMINATE_SESSION"]
+        if protocol in {"ssh", "database"}:
+            candidates = [a for a in candidates if a != "MISLEADING_SUCCESS"]
+
+    if state is not None:
+        rate, unique, duration, errors, privesc = state[:5]
+        high_risk = errors >= 2 or (privesc and duration >= 1)
+        if not high_risk and "TERMINATE_SESSION" in candidates:
+            candidates.remove("TERMINATE_SESSION")
+
+    return candidates or list(ACTIONS)
+
+
 # ==============================================================================
 # PRINTING UTILITIES
 # ==============================================================================
