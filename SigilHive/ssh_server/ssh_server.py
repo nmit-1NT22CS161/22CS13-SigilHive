@@ -34,6 +34,8 @@ class HoneypotSession(asyncssh.SSHServerSession):
         self.username = "shophub"
         self.hostname = "shophub-prod-01"
         self._pending_tasks = set()
+        self._banner_sent = False
+        self._command_lock = asyncio.Lock()
 
     def _mark_closed(self):
         self._closed = True
@@ -66,26 +68,6 @@ class HoneypotSession(asyncssh.SSHServerSession):
     def connection_made(self, chan):
         self._chan = chan
         print(f"[honeypot][{self.session_id}] connection established")
-        try:
-            banner = f"""
-╔═══════════════════════════════════════════════════════════╗
-║         Welcome to ShopHub Production Server              ║
-║                                                           ║
-║  WARNING: Unauthorized access is strictly prohibited      ║
-║  All activities are monitored and logged                  ║
-╚═══════════════════════════════════════════════════════════╝
-
-ShopHub v2.3.1 - E-commerce Platform
-Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
-
-"""
-            if not self._safe_write(str(banner)):
-                return
-            if not self._safe_write("\r\n"):
-                return
-            self._write_prompt()
-        except Exception as e:
-            print(f"[honeypot][{self.session_id}] error in connection_made: {e}")
 
     def _write_prompt(self):
         """Write a realistic shell prompt"""
@@ -94,25 +76,48 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
     def _normalize_path(self, path: str) -> str:
         """Normalize a path relative to current directory"""
+        path = (path or "").strip()
+
+        if path == "" or path == ".":
+            return self.current_dir
+
         if path.startswith("/"):
             if path == "/":
                 return "/"
             if path.startswith("/home/shophub"):
-                return path.replace("/home/shophub", "~")
-            return path
-        elif path.startswith("~"):
-            return path
-        elif path == ".":
-            return self.current_dir
-        elif path == "..":
-            return self._get_parent_dir(self.current_dir)
+                base_parts = []
+                rel_path = path.replace("/home/shophub", "~", 1)
+                if rel_path == "~":
+                    return "~"
+                path = rel_path
+            else:
+                return path.rstrip("/")
+
+        if path.startswith("~"):
+            if path == "~":
+                return "~"
+            base_parts = []
+            raw_parts = path[2:].split("/") if path.startswith("~/") else []
         else:
             if self.current_dir == "~":
-                return f"~/{path}"
-            elif self.current_dir.endswith("/"):
-                return f"{self.current_dir}{path}"
+                base_parts = []
+            elif self.current_dir.startswith("~/"):
+                base_parts = [p for p in self.current_dir[2:].split("/") if p]
             else:
-                return f"{self.current_dir}/{path}"
+                return path.rstrip("/")
+            raw_parts = path.split("/")
+
+        parts = list(base_parts)
+        for part in raw_parts:
+            if part in ("", "."):
+                continue
+            if part == "..":
+                if parts:
+                    parts.pop()
+                continue
+            parts.append(part)
+
+        return "~" if not parts else "~/" + "/".join(parts)
 
     def _get_parent_dir(self, path: str) -> str:
         """Get parent directory of given path"""
@@ -137,8 +142,19 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
     def _directory_exists(self, path: str) -> bool:
         """Check if a directory exists in our structure"""
+        controller._reload_file_structure()
         normalized = self._normalize_path(path)
-        return normalized in controller.file_structure
+        if normalized in ("~", "/home/shophub"):
+            return True
+        if normalized in controller.file_structure:
+            return True
+        if not normalized.startswith("~") and normalized.startswith("/home/shophub/"):
+            alt = normalized.replace("/home/shophub", "~", 1)
+            return alt in controller.file_structure
+        if not normalized.startswith("~"):
+            alt = f"~/{normalized.lstrip('/')}"
+            return alt in controller.file_structure
+        return False
 
     def data_received(self, data, datatype):
         """Handle incoming data from SSH client"""
@@ -215,54 +231,54 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
         """Handle commands asynchronously"""
         if self._closed or not self._chan:
             return
-
-        event = {
-            "session_id": self.session_id,
-            "type": "command",
-            "command": cmd,
-            "current_dir": self.current_dir,
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "cmd_count": self.cmd_count,
-            "elapsed": time.time() - self.start_time,
-        }
-
-        try:
-            action = await controller.get_action_for_session(self.session_id, event)
-        except Exception as e:
-            print(f"[honeypot][{self.session_id}] controller error: {e}")
-            cmd_parts = cmd.split()
-            base = cmd_parts[0] if cmd_parts else "unknown"
-            action = {
-                "response": f"bash: {base}: command not found",
-                "delay": 0.05,
+        async with self._command_lock:
+            event = {
+                "session_id": self.session_id,
+                "type": "command",
+                "command": cmd,
+                "current_dir": self.current_dir,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "cmd_count": self.cmd_count,
+                "elapsed": time.time() - self.start_time,
             }
 
-        delay = float(action.get("delay", 0.0) or 0.0)
-        if delay > 0:
             try:
-                await asyncio.sleep(delay)
-            except asyncio.CancelledError:
+                action = await controller.get_action_for_session(self.session_id, event)
+            except Exception as e:
+                print(f"[honeypot][{self.session_id}] controller error: {e}")
+                cmd_parts = cmd.split()
+                base = cmd_parts[0] if cmd_parts else "unknown"
+                action = {
+                    "response": f"bash: {base}: command not found",
+                    "delay": 0.05,
+                }
+
+            delay = float(action.get("delay", 0.0) or 0.0)
+            if delay > 0:
+                try:
+                    await asyncio.sleep(delay)
+                except asyncio.CancelledError:
+                    return
+
+            if self._closed or not self._chan:
                 return
 
-        if self._closed or not self._chan:
-            return
+            response_text = action.get("response", "")
+            if not response_text:
+                response_text = ""
 
-        response_text = action.get("response", "")
-        if not response_text:
-            response_text = ""
+            if response_text and not self._safe_write(str(response_text)):
+                return
+            if response_text and not str(response_text).endswith("\n"):
+                if not self._safe_write("\n"):
+                    return
 
-        if response_text and not self._safe_write(str(response_text)):
-            return
-        if response_text and not str(response_text).endswith("\n"):
-            if not self._safe_write("\n"):
+            if action.get("disconnect"):
+                print(f"[honeypot][{self.session_id}] controller requested disconnect")
+                self._close_channel(0)
                 return
 
-        if action.get("disconnect"):
-            print(f"[honeypot][{self.session_id}] controller requested disconnect")
-            self._close_channel(0)
-            return
-
-        self._write_prompt()
+            self._write_prompt()
 
     def eof_received(self):
         print(f"[honeypot][{self.session_id}] EOF received")
@@ -278,7 +294,29 @@ Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
 
     def session_started(self):
         print(f"[honeypot][{self.session_id}] session started")
-        pass
+        if self._banner_sent:
+            return
+        self._banner_sent = True
+        try:
+            banner = f"""
+╔═══════════════════════════════════════════════════════════╗
+║         Welcome to ShopHub Production Server              ║
+║                                                           ║
+║  WARNING: Unauthorized access is strictly prohibited      ║
+║  All activities are monitored and logged                  ║
+╚═══════════════════════════════════════════════════════════╝
+
+ShopHub v2.3.1 - E-commerce Platform
+Last login: {datetime.now().strftime("%a %b %d %H:%M:%S %Y")} from 10.0.2.15
+
+"""
+            if not self._safe_write(str(banner)):
+                return
+            if not self._safe_write("\r\n"):
+                return
+            self._write_prompt()
+        except Exception as e:
+            print(f"[honeypot][{self.session_id}] error in session_started: {e}")
 
     def terminal_size_changed(self, width, height, pixwidth, pixheight):
         print(f"[honeypot][{self.session_id}] terminal resized: {width}x{height}")

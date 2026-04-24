@@ -88,6 +88,12 @@ services:
       - .env
     environment:
       TARGET_HOST: host.docker.internal
+      SSH_PORT: 5555
+      HTTPS_PORT: 8443
+      MYSQL_PORT: 2225
+      FILE_STRUCTURE_PATH: /app/file_structure.py
+    volumes:
+      - ./file_structure.py:/app/file_structure.py
     depends_on:
       ssh_honeypot:
         condition: service_started

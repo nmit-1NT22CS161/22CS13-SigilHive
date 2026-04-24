@@ -1,11 +1,12 @@
 import os
 import time
 import random
+import importlib.util
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
+from pathlib import Path
 from llm_gen import generate_response_for_command_async
 from kafka_manager import HoneypotKafkaManager
-from file_structure import SHOPHUB_STRUCTURE, FILE_CONTENTS
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
@@ -13,17 +14,58 @@ from rl_core.logging.structured_logger import log_interaction
 from rl_core.config import BASELINE_CONFIG
 
 
+def _resolve_file_structure_path() -> Path:
+    env_path = os.getenv("FILE_STRUCTURE_PATH", "").strip()
+    if env_path:
+        return Path(env_path).resolve()
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        script_dir / "file_structure.py",
+        script_dir.parent / "file_structure.py",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
+
+
 class Controller:
     def __init__(self, persona: str = "shophub-server"):
         self.sessions: Dict[str, Dict[str, Any]] = {}
         self.persona = persona
         self.kafka_manager = HoneypotKafkaManager()
-        self.file_structure = SHOPHUB_STRUCTURE
-        self.file_contents = FILE_CONTENTS
+        self.file_structure_path = _resolve_file_structure_path()
+        self._file_mtime = 0.0
+        self.file_structure = {}
+        self.file_contents = {}
+        self._reload_file_structure(force=True)
 
         self.rl_agent = shared_rl_agent
         self.rl_enabled = os.getenv("RL_ENABLED", "true").lower() == "true"
         print(f"[Controller] ✅ Controller initialized (RL enabled: {self.rl_enabled})")
+
+    def _reload_file_structure(self, force: bool = False):
+        try:
+            mtime = self.file_structure_path.stat().st_mtime
+        except FileNotFoundError:
+            return
+
+        if not force and mtime <= self._file_mtime:
+            return
+
+        spec = importlib.util.spec_from_file_location(
+            f"_ssh_fs_{int(mtime * 1000)}",
+            self.file_structure_path,
+        )
+        if spec is None or spec.loader is None:
+            return
+
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.file_structure = getattr(mod, "SHOPHUB_STRUCTURE", {})
+        self.file_contents = getattr(mod, "FILE_CONTENTS", {})
+        self._file_mtime = mtime
+        print(f"[Controller] Reloaded file structure from {self.file_structure_path}")
 
     def _update_meta(self, session_id: str, event: Dict[str, Any]):
         meta = self.sessions.setdefault(
@@ -88,6 +130,7 @@ class Controller:
             self.rl_agent.save_q_table()
 
     def get_directory_context(self, current_dir: str) -> Dict[str, Any]:
+        self._reload_file_structure()
         normalized_dir = current_dir.strip()
         if normalized_dir.endswith("/") and normalized_dir != "/":
             normalized_dir = normalized_dir[:-1]
@@ -123,7 +166,7 @@ class Controller:
             return "show_env"
         if base_cmd in ("cat", "less", "more"):
             return "read_file_no_arg" if len(cmd_parts) < 2 else "read_file"
-        if base_cmd in ("ls", "dir", "ll"):
+        if base_cmd in ("l", "ls", "dir", "ll"):
             return "list_dir"
         if base_cmd in ("whoami", "id"):
             return "identity"
@@ -173,6 +216,7 @@ class Controller:
     def _find_file_case_insensitive(
         self, current_dir: str, filename: str
     ) -> Optional[str]:
+        self._reload_file_structure()
         if filename.startswith("~") or filename.startswith("/"):
             full_path = filename
         else:
@@ -410,15 +454,14 @@ class Controller:
                 0.05,
             )
         else:
-            llm_response = await generate_response_for_command_async(
-                command=cmd,
-                filename_hint=None,
-                persona=self.persona,
-                context=context,
-                force_refresh=False,
-            )
+            base_cmd = cmd.split()[0] if cmd.split() else "unknown"
             return await self._finalize(
-                session_id, cmd, intent, current_dir, llm_response, 0.1
+                session_id,
+                cmd,
+                intent,
+                current_dir,
+                f"bash: {base_cmd}: command not found",
+                0.05,
             )
 
     async def _handle_read_file(self, session_id, cmd, current_dir, context):
@@ -467,6 +510,16 @@ class Controller:
             target_dir = parts[1]
         dir_context = self.get_directory_context(target_dir)
         contents = dir_context.get("contents", [])
+        if not contents and target_dir in ("~", ".", ""):
+            contents = [
+                "shophub",
+                ".env",
+                ".bashrc",
+                ".bash_history",
+                ".profile",
+                ".ssh",
+                "README.md",
+            ]
         if not contents:
             return await self._finalize(
                 session_id, cmd, "list_dir", current_dir, "", 0.05
@@ -587,6 +640,10 @@ class Controller:
             return response
 
         elif action == "MISLEADING_SUCCESS":
+            # Keep basic shell navigation usable; deceptive empties here make the
+            # honeypot feel broken rather than believable.
+            if intent in {"list_dir", "print_dir", "read_file", "read_file_no_arg"}:
+                return await self._original_command_handler(session_id, event)
             if intent == "privilege_escalation":
                 return await self._finalize(
                     session_id,

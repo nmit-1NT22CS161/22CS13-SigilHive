@@ -1,10 +1,11 @@
 import os
 import random
+import importlib.util
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
+from pathlib import Path
 from llm_gen import generate_shophub_response_async
 from kafka_manager import HoneypotKafkaManager
-from file_structure import PAGES, PRODUCTS
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
@@ -16,17 +17,58 @@ def log(message: str):
     print(message, flush=True)
 
 
+def _resolve_file_structure_path() -> Path:
+    env_path = os.getenv("FILE_STRUCTURE_PATH", "").strip()
+    if env_path:
+        return Path(env_path).resolve()
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        script_dir / "file_structure.py",
+        script_dir.parent / "file_structure.py",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
+
+
 class ShopHubState:
     """Maintains ShopHub e-commerce website state"""
 
     def __init__(self):
-        self.pages = PAGES
-        self.products = PRODUCTS
+        self.file_structure_path = _resolve_file_structure_path()
+        self._file_mtime = 0.0
+        self.pages = {}
+        self.products = {}
         self.api_endpoints = self._initialize_api_endpoints()
+        self._reload_file_structure(force=True)
 
         self.rl_agent = shared_rl_agent
         self.rl_enabled = os.getenv("RL_ENABLED", "true").lower() == "true"
         log(f"[Controller] ShopHub controller ready (RL enabled: {self.rl_enabled})")
+
+    def _reload_file_structure(self, force: bool = False) -> None:
+        try:
+            mtime = self.file_structure_path.stat().st_mtime
+        except FileNotFoundError:
+            return
+
+        if not force and mtime <= self._file_mtime:
+            return
+
+        spec = importlib.util.spec_from_file_location(
+            f"_http_fs_{int(mtime * 1000)}",
+            self.file_structure_path,
+        )
+        if spec is None or spec.loader is None:
+            return
+
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.pages = getattr(mod, "PAGES", {})
+        self.products = getattr(mod, "PRODUCTS", {})
+        self._file_mtime = mtime
+        log(f"[Controller] Reloaded file structure from {self.file_structure_path}")
 
     def _initialize_api_endpoints(self) -> dict:
         """Initialize API endpoints"""
@@ -43,6 +85,7 @@ class ShopHubState:
 
     def page_exists(self, path: str) -> bool:
         """Check if a page exists"""
+        self._reload_file_structure()
         if path.endswith("/") and path != "/":
             path = path[:-1]
 
@@ -67,6 +110,7 @@ class ShopHubState:
 
     def get_page_info(self, path: str) -> Optional[Dict]:
         """Get page information"""
+        self._reload_file_structure()
         if path.endswith("/") and path != "/":
             path = path[:-1]
 

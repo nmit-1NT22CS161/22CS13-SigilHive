@@ -870,6 +870,202 @@ def _build_fallback_evaluation(state: AgentState, reward: float) -> str:
     )
 
 
+def _load_file_structure_snapshot(file_path: str = "") -> dict:
+    """Load the current file_structure.py contents without relying on stale imports."""
+    resolved = _resolve_file_structure_path(file_path)
+    if not resolved:
+        return {}
+
+    try:
+        import copy
+        import importlib.util
+
+        module_name = f"_sigilhive_fs_{int(time.time() * 1000)}_{random.randint(1000, 9999)}"
+        spec = importlib.util.spec_from_file_location(module_name, resolved)
+        if spec is None or spec.loader is None:
+            return {}
+
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return {
+            "DATABASES": copy.deepcopy(getattr(mod, "DATABASES", {})),
+            "SHOPHUB_STRUCTURE": copy.deepcopy(getattr(mod, "SHOPHUB_STRUCTURE", {})),
+            "FILE_CONTENTS": copy.deepcopy(getattr(mod, "FILE_CONTENTS", {})),
+            "PAGES": copy.deepcopy(getattr(mod, "PAGES", {})),
+            "PRODUCTS": copy.deepcopy(getattr(mod, "PRODUCTS", {})),
+        }
+    except Exception as exc:
+        root_log.warning(f"Failed to load live file_structure snapshot from {resolved}: {exc}")
+        return {}
+
+
+def _select_rotating(items: list, count: int, episode: int, salt: int = 0) -> list:
+    """Choose a stable-but-rotating subset so episodes do not hammer the same targets."""
+    if not items or count <= 0:
+        return []
+
+    ordered = list(dict.fromkeys(items))
+    if len(ordered) <= count:
+        return ordered
+
+    offset = (episode + salt) % len(ordered)
+    rotated = ordered[offset:] + ordered[:offset]
+    return rotated[:count]
+
+
+def _build_ssh_exploit_candidates(state: AgentState) -> list[str]:
+    snapshot = _load_file_structure_snapshot(state.get("file_structure_path", ""))
+    files = snapshot.get("FILE_CONTENTS", {})
+    structure = snapshot.get("SHOPHUB_STRUCTURE", {})
+
+    candidates: list[str] = []
+
+    preferred_files = [
+        "~/.env",
+        "~/shophub/.env",
+        "~/.bash_history",
+        "~/.ssh/config",
+        "~/.ssh/authorized_keys",
+        "~/shophub/docker-compose.yml",
+        "~/shophub/package.json",
+        "~/shophub/.git/config",
+        "~/shophub/README.md",
+    ]
+    for path in preferred_files:
+        if path in files:
+            candidates.append(f"cat {path}")
+
+    if "~/.ssh" in structure:
+        candidates.append("ls -la ~/.ssh")
+    if "~/shophub/scripts" in structure:
+        candidates.append("ls -la ~/shophub/scripts")
+    if "~/shophub/config" in structure:
+        candidates.append("ls -la ~/shophub/config")
+
+    if any(path in files for path in ("~/.env", "~/shophub/.env")):
+        candidates.append("env")
+
+    if any(path in files for path in ("~/shophub/docker-compose.yml", "~/shophub/package.json")):
+        candidates.append("pwd")
+        candidates.append("whoami")
+
+    if "~/.ssh/id_rsa" in files or "~/.ssh/id_rsa_backup" in files:
+        candidates.append("ls -la ~/.ssh")
+
+    return list(dict.fromkeys(candidates))
+
+
+def _build_http_exploit_candidates(state: AgentState) -> list[tuple[str, str]]:
+    snapshot = _load_file_structure_snapshot(state.get("file_structure_path", ""))
+    pages = snapshot.get("PAGES", {})
+
+    existing_pages = [
+        path
+        for path, info in pages.items()
+        if isinstance(info, dict) and info.get("exists", True)
+    ]
+
+    high_value = [
+        "/admin",
+        "/admin/login",
+        "/admin/dashboard",
+        "/account",
+        "/orders",
+        "/checkout",
+        "/cart",
+        "/login",
+        "/register",
+        "/contact",
+        "/help",
+    ]
+    existing_high_value = [path for path in high_value if path in existing_pages]
+
+    api_candidates = [
+        ("POST", "/api/auth/login"),
+        ("POST", "/api/auth/register"),
+        ("GET", "/api/user/profile"),
+        ("GET", "/api/orders"),
+        ("POST", "/api/orders"),
+        ("GET", "/api/cart"),
+        ("POST", "/api/cart"),
+        ("GET", "/api/search"),
+        ("GET", "/api/products"),
+    ]
+
+    page_candidates = [("GET", path) for path in existing_high_value]
+
+    evolved_page_candidates = [
+        ("GET", path)
+        for path in existing_pages
+        if path not in high_value
+        and any(
+            token in path
+            for token in ("/admin", "/api", "/debug", "/backup", "/config", "/internal")
+        )
+    ]
+
+    return list(dict.fromkeys(page_candidates + api_candidates + evolved_page_candidates))
+
+
+def _select_unique_http_targets(
+    candidates: list[tuple[str, str]], count: int, episode: int
+) -> list[tuple[str, str]]:
+    """Rotate HTTP targets while keeping paths unique in a single episode."""
+    selected: list[tuple[str, str]] = []
+    seen_paths: set[str] = set()
+    for method, path in _select_rotating(candidates, count=len(candidates), episode=episode, salt=7):
+        if path in seen_paths:
+            continue
+        seen_paths.add(path)
+        selected.append((method, path))
+        if len(selected) >= count:
+            break
+    return selected
+
+
+def _build_db_exploit_queries(state: AgentState) -> list[str]:
+    snapshot = _load_file_structure_snapshot(state.get("file_structure_path", ""))
+    databases = snapshot.get("DATABASES", {})
+    shophub_tables = list(databases.get("shophub", {}).get("tables", {}).keys())
+    shophub_log_tables = list(databases.get("shophub_logs", {}).get("tables", {}).keys())
+
+    priority_tables = [
+        "admin_users",
+        "users",
+        "payments",
+        "orders",
+        "addresses",
+        "cart",
+        "reviews",
+        "products",
+        "api_keys",
+        "credit_cards",
+        "sessions",
+        "audit_logs",
+    ]
+    ordered_existing = [table for table in priority_tables if table in shophub_tables]
+    ordered_existing += [table for table in shophub_tables if table not in ordered_existing]
+
+    chosen_tables = _select_rotating(ordered_existing, count=4, episode=state["episode"], salt=11)
+
+    queries = ["USE shophub"]
+    for table in chosen_tables:
+        queries.append(f"SELECT * FROM {table} LIMIT 5")
+
+    if shophub_log_tables:
+        log_tables = _select_rotating(shophub_log_tables, count=1, episode=state["episode"], salt=17)
+        for table in log_tables:
+            queries.append(f"SELECT * FROM shophub_logs.{table} LIMIT 5")
+
+    if "mysql" in databases and "user" in databases["mysql"].get("tables", {}):
+        queries.append("SELECT Host, User, authentication_string FROM mysql.user LIMIT 10")
+
+    queries.append(
+        "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA IN ('shophub', 'shophub_logs') LIMIT 20"
+    )
+    return list(dict.fromkeys(queries))[:8]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Evolution Change Pool  (mirrors EvolutionDecisionEngine in original)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1017,59 +1213,22 @@ def gen_ssh_exploit_cmds(state: AgentState) -> dict:
     recon = state.get("ssh_recon_result") or {}
     recon_responses = "\n".join(recon.get("responses", []))
 
-    system_prompt = """You are a red-team attacker targeting a Linux honeypot server.
-You have just completed recon. Based on the recon output, generate a precise list of
-exploit shell commands to extract the most valuable honeytoken data.
+    candidates = _build_ssh_exploit_candidates(state)
+    cmds = _select_rotating(candidates, count=6, episode=state["episode"], salt=3)
 
-Context about this honeypot:
-- It runs an e-commerce app called ShopHub
-- Honeytokens are hidden in: ~/.env, /opt/secrets/, ~/.ssh/, /etc/passwd, /etc/shadow,
-  environment variables (AWS keys, Stripe keys, DB creds), sudo privileges, running processes
-- You must stay stealthy — prefer targeted reads over broad scans
-- Max 6 commands
-- IMPORTANT: Each run must use a DIFFERENT mix of commands. Vary your approach — try different
-  file paths, different recon angles, different privilege escalation vectors each time.
+    if len(cmds) < 4:
+        for fallback in ["cat ~/.env", "cat ~/.bash_history", "ls -la ~/.ssh", "env"]:
+            if fallback not in cmds:
+                cmds.append(fallback)
+        cmds = cmds[:6]
 
-Respond with ONLY a JSON array of shell command strings. No explanation, no markdown fences.
-Example: ["cat ~/.env", "sudo -l", "ls -la ~/.ssh/"]"""
-
-    variation_seed = random.randint(1000, 9999)
     user_prompt = f"""SSH recon results:
 {recon_responses}
 
-Based on the above (user={recon.get("responses", [""])[0]}, OS visible), 
-generate targeted exploit commands to extract honeytoken credentials.
-[variation-seed: {variation_seed}]"""
+Use the live file structure to pick a varied set of targeted commands for episode {state["episode"]}.
+Only choose commands that are likely to succeed against the current ShopHub layout."""
 
-    llm = _get_creative_llm()
-    try:
-        response = llm.invoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-        )
-        raw = response.content.strip()
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        cmds = json.loads(raw)
-        # Validate — must be a list of strings
-        if not isinstance(cmds, list) or not all(isinstance(c, str) for c in cmds):
-            raise ValueError("Not a list of strings")
-        # Safety cap
-        cmds = cmds[:8]
-    except Exception as exc:
-        log.warning(f"  Gemini SSH cmd generation failed ({exc}) — using fallback pool")
-        cmds = [
-            "cat ~/.env",
-            "sudo -l",
-            "env",
-            "cat /etc/passwd",
-            "find / -name '*.key' 2>/dev/null",
-            "ls -la ~/.ssh/",
-        ]
-
-    log.info(f"  Gemini SSH exploit commands ({len(cmds)}): {cmds}")
+    log.info(f"  Adaptive SSH exploit commands ({len(cmds)}): {cmds}")
     return {
         "ssh_exploit_cmds": cmds,
         "messages": [
@@ -1141,62 +1300,15 @@ def gen_http_exploit_cmds(state: AgentState) -> dict:
     recon = state.get("http_recon_result") or {}
     recon_responses = "\n".join(recon.get("responses", []))
 
-    system_prompt = """You are a red-team attacker targeting an HTTPS e-commerce honeypot.
-You have completed HTTP recon. Based on which pages responded, generate targeted exploit
-HTTP requests to extract honeytoken credentials and sensitive data.
+    candidates = _build_http_exploit_candidates(state)
+    paths = _select_unique_http_targets(candidates, count=6, episode=state["episode"])
 
-Context about this honeypot (ShopHub e-commerce):
-- Honeytokens live at: /.env, /.git/config, /admin, /backup/database.sql,
-  /api/keys, /api/v1/admin/users, /.htpasswd, /config.php.bak, /api/secrets
-- Use GET for file reads, POST for auth endpoints
-- Focus on paths most likely to be implemented given what recon revealed
-- Max 6 requests, stay targeted
-- IMPORTANT: Vary your path selection each run — explore different endpoint combinations,
-  try both common and obscure paths, rotate between API and static file vectors.
-
-Respond with ONLY a JSON array of [method, path] pairs. No explanation, no markdown fences.
-Example: [["GET", "/.env"], ["GET", "/admin"], ["POST", "/api/auth/login"]]"""
-
-    variation_seed = random.randint(1000, 9999)
     user_prompt = f"""HTTP recon results (which paths responded):
 {recon_responses}
 
-Generate targeted exploit requests to extract honeytokens from this ShopHub server.
-[variation-seed: {variation_seed}]"""
+Use only endpoints that exist in the current ShopHub page map or controller API surface for episode {state["episode"]}."""
 
-    llm = _get_creative_llm()
-    try:
-        response = llm.invoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-        )
-        raw = response.content.strip()
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        paths_raw = json.loads(raw)
-        # Validate — list of [method, path] pairs
-        paths = [
-            (str(p[0]).upper(), str(p[1]))
-            for p in paths_raw
-            if isinstance(p, (list, tuple)) and len(p) == 2
-        ]
-        if not paths:
-            raise ValueError("Empty or malformed path list")
-        paths = paths[:8]
-    except Exception as exc:
-        log.warning(f"  Gemini HTTP path generation failed ({exc}) — using fallback")
-        paths = [
-            ("GET", "/.env"),
-            ("GET", "/.git/config"),
-            ("GET", "/admin"),
-            ("GET", "/backup/database.sql"),
-            ("GET", "/api/keys"),
-            ("POST", "/api/auth/login"),
-        ]
-
-    log.info(f"  Gemini HTTP exploit paths ({len(paths)}): {[p for _, p in paths]}")
+    log.info(f"  Adaptive HTTP exploit paths ({len(paths)}): {[f'{m} {p}' for m, p in paths]}")
     return {
         "http_exploit_cmds": paths,
         "messages": [
@@ -1268,64 +1380,14 @@ def gen_db_exploit_cmds(state: AgentState) -> dict:
     recon = state.get("db_recon_result") or {}
     recon_responses = "\n".join(recon.get("responses", []))
 
-    system_prompt = """You are a red-team attacker targeting a MySQL honeypot database.
-You have completed DB recon showing available databases and tables. Based on the table names
-discovered, generate targeted SQL queries to extract the most valuable honeytoken data.
+    queries = _build_db_exploit_queries(state)
 
-Context about this honeypot (ShopHub MySQL):
-- High-value tables: admin_users, api_keys, credit_cards, sessions, users, audit_logs
-- System tables: mysql.user, information_schema.tables
-- Honeytokens are embedded as fake bcrypt hashes, fake API keys (sk_live_*, AKIA*), fake card numbers
-- Always run "USE shophub" first
-- Keep queries focused — SELECT with LIMIT where appropriate
-- Max 7 queries
-- IMPORTANT: Vary your query selection each run — rotate which tables you target, try different
-  WHERE clauses, ORDER BY columns, JOIN strategies, and system table queries each time.
-
-Respond with ONLY a JSON array of SQL query strings. No explanation, no markdown fences.
-Example: ["USE shophub", "SELECT * FROM admin_users LIMIT 5", "SELECT * FROM api_keys"]"""
-
-    variation_seed = random.randint(1000, 9999)
     user_prompt = f"""DB recon results (databases and tables discovered):
 {recon_responses}
 
-Based on the tables found, generate targeted SQL exploit queries to extract honeytokens.
-[variation-seed: {variation_seed}]"""
+Use the live database schema to pick a varied set of valid SQL queries for episode {state["episode"]}."""
 
-    llm = _get_creative_llm()
-    try:
-        response = llm.invoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-        )
-        raw = response.content.strip()
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        queries = json.loads(raw)
-        if not isinstance(queries, list) or not all(
-            isinstance(q, str) for q in queries
-        ):
-            raise ValueError("Not a list of strings")
-        # Ensure USE shophub is first
-        if queries and queries[0].strip().upper() != "USE SHOPHUB":
-            queries = ["USE shophub"] + [
-                q for q in queries if "USE shophub" not in q.lower()
-            ]
-        queries = queries[:8]
-    except Exception as exc:
-        log.warning(f"  Gemini DB query generation failed ({exc}) — using fallback")
-        queries = [
-            "USE shophub",
-            "SELECT * FROM admin_users LIMIT 5",
-            "SELECT * FROM api_keys",
-            "SELECT user, host, authentication_string FROM mysql.user",
-            "SELECT * FROM credit_cards LIMIT 5",
-            "SELECT table_name FROM information_schema.tables",
-        ]
-
-    log.info(f"  Gemini DB exploit queries ({len(queries)}): {queries}")
+    log.info(f"  Adaptive DB exploit queries ({len(queries)}): {queries}")
     return {
         "db_exploit_cmds": queries,
         "messages": [
@@ -1801,9 +1863,9 @@ class FileStructureEvolver:
 
     def _rotate_readme_hostname(self, data: dict, cycle: int) -> str:
         """Bump the hostname banner in ~/README.md."""
-        key = "~/README.md"
+        key = "~/shophub/README.md"
         if key not in data["FILE_CONTENTS"]:
-            return "Skipped rotate_readme_hostname (~/README.md not in FILE_CONTENTS)"
+            return "Skipped rotate_readme_hostname (~/shophub/README.md not in FILE_CONTENTS)"
         old_n = max(1, cycle - 1)
         new_n = cycle
         old = f"shophub-prod-{old_n:02d}"
@@ -2210,7 +2272,7 @@ Decide: should the honeypot filesystem evolve?"""
     return {
         "evolution_triggered": should_evolve,
         "evolution_reason": reason,
-        "evolution_changes": approved_changes,
+        "evolution_changes": mutation_log if mutation_log else approved_changes,
         "finished_at": time.time(),
         "messages": [
             HumanMessage(content=user_prompt),

@@ -1,25 +1,65 @@
 import os
 import re
 import json
+import importlib.util
 import numpy as np
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, Optional
 from llm_gen import generate_db_response_async
 from kafka_manager import HoneypotKafkaManager
-from file_structure import DATABASES
 from rl_core.q_learning_agent import shared_rl_agent
 from rl_core.state_extractor import extract_state
 from rl_core.reward_calculator import calculate_reward
 from rl_core.logging.structured_logger import log_interaction
 
 
+def _resolve_file_structure_path() -> Path:
+    env_path = os.getenv("FILE_STRUCTURE_PATH", "").strip()
+    if env_path:
+        return Path(env_path).resolve()
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        script_dir / "file_structure.py",
+        script_dir.parent / "file_structure.py",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
+
+
 # ── ShopHubDatabase (unchanged) ───────────────────────────────────────────────
 class ShopHubDatabase:
     """Maintains ShopHub e-commerce database state"""
 
-    def __init__(self):
-        self.databases = DATABASES
+    def __init__(self, file_structure_path: Optional[Path] = None):
+        self.file_structure_path = file_structure_path or _resolve_file_structure_path()
+        self._file_mtime = 0.0
+        self.databases = {}
+        self.reload(force=True)
         self.current_db: Optional[str] = None
+
+    def reload(self, force: bool = False):
+        try:
+            mtime = self.file_structure_path.stat().st_mtime
+        except FileNotFoundError:
+            return
+
+        if not force and mtime <= self._file_mtime:
+            return
+
+        spec = importlib.util.spec_from_file_location(
+            f"_db_fs_{int(mtime * 1000)}",
+            self.file_structure_path,
+        )
+        if spec is None or spec.loader is None:
+            return
+
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.databases = getattr(mod, "DATABASES", {})
+        self._file_mtime = mtime
 
     def create_database(self, db_name):
         if db_name.lower() not in self.databases:
@@ -160,6 +200,9 @@ class ShopHubDBController:
         self.kafka_manager.register_handler("HTTPtoDB", self._on_http_event)
         self.kafka_manager.register_handler("SSHtoDB", self._on_ssh_event)
 
+    def _reload_file_structure(self):
+        self.db_state.reload()
+
     # ── FIX 3: cross-protocol Kafka handlers ─────────────────────────────────
 
     def _on_http_event(self, payload: dict) -> None:
@@ -228,6 +271,7 @@ class ShopHubDBController:
     # ── Query classification helpers (unchanged from original) ────────────────
 
     def _get_session(self, session_id):
+        self._reload_file_structure()
         if session_id not in self.sessions:
             self.sessions[session_id] = {
                 "query_history": [],
@@ -380,6 +424,30 @@ class ShopHubDBController:
     def _parse_select(self, query):
         m = re.search(r'FROM\s+[`"]?(\w+)[`"]?', query, re.IGNORECASE)
         return m.group(1) if m else None
+
+    def _parse_select_details(self, query):
+        m = re.search(
+            r"SELECT\s+(.*?)\s+FROM\s+[`\"]?(\w+)[`\"]?",
+            query,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not m:
+            return None, None
+
+        raw_columns = m.group(1).strip()
+        table_name = m.group(2)
+
+        if raw_columns == "*":
+            return table_name, ["*"]
+
+        columns = []
+        for col in raw_columns.split(","):
+            cleaned = col.strip().strip("`\"")
+            cleaned = re.split(r"\s+AS\s+", cleaned, flags=re.IGNORECASE)[0].strip()
+            if "." in cleaned:
+                cleaned = cleaned.split(".")[-1]
+            columns.append(cleaned)
+        return table_name, columns
 
     def _parse_describe(self, query):
         m = re.search(r'(?:DESCRIBE|DESC)\s+[`"]?(\w+)[`"]?', query, re.IGNORECASE)
@@ -548,7 +616,7 @@ class ShopHubDBController:
                     0.0,
                 )
 
-            table_name = self._parse_select(query)
+            table_name, selected_columns = self._parse_select_details(query)
             if table_name:
                 if not self.db_state.current_db:
                     return await self._finalize_query(
@@ -558,42 +626,51 @@ class ShopHubDBController:
                 if table_info:
                     columns = table_info.get("columns", [])
                     rows = table_info.get("rows", [])
-                    if len(rows) < 5:
+
+                    projection = selected_columns or ["*"]
+                    if projection != ["*"]:
+                        unknown = [col for col in projection if col not in columns]
+                        if unknown:
+                            return await self._finalize_query(
+                                session_id,
+                                query,
+                                intent,
+                                f"ERROR 1054 (42S22): Unknown column '{unknown[0]}' in 'field list'",
+                                0.0,
+                            )
+                        indexes = [columns.index(col) for col in projection]
+                        rows = [[row[i] for i in indexes] for row in rows]
+                        columns = projection
+
+                    if not rows:
                         try:
                             db_context = self.db_state.get_state_summary()
-                            # FIX 3: thread cross-honeypot context into LLM prompt
                             cross_summary = self._get_cross_context_summary(session_id)
                             if cross_summary:
                                 db_context = db_context + "\n" + cross_summary
-                            llm_raw = await generate_db_response_async(
-                                query=query, intent=intent, db_context=db_context
+
+                            llm_result = await generate_db_response_async(
+                                query=query,
+                                intent=intent,
+                                db_context=db_context,
+                                session_id=session_id,
                             )
-                            if isinstance(llm_raw, str):
-                                json_data = extract_json_from_text(llm_raw)
-                                response = (
-                                    json_data
-                                    if json_data
-                                    else {"columns": ["result"], "rows": [[llm_raw]]}
-                                )
-                            elif isinstance(llm_raw, dict):
-                                response = llm_raw
-                            else:
-                                response = {
-                                    "columns": ["result"],
-                                    "rows": [[str(llm_raw)]],
-                                }
-                            if (
-                                not isinstance(response, dict)
-                                or "columns" not in response
-                                or "rows" not in response
-                            ):
-                                response = {"columns": columns, "rows": []}
+
+                            if isinstance(llm_result, dict) and "columns" in llm_result and "rows" in llm_result:
+                                llm_columns = [str(col) for col in llm_result.get("columns", [])]
+                                llm_rows = llm_result.get("rows", [])
+
+                                if projection == ["*"]:
+                                    if llm_columns:
+                                        columns = llm_columns
+                                    rows = llm_rows
+                                else:
+                                    if all(col in llm_columns for col in projection):
+                                        indexes = [llm_columns.index(col) for col in projection]
+                                        rows = [[row[i] for i in indexes] for row in llm_rows]
+                                        columns = projection
                         except Exception as e:
-                            print(f"[DBController] LLM error: {e}")
-                            response = {"columns": columns, "rows": []}
-                        return await self._finalize_query(
-                            session_id, query, intent, response, 0.1
-                        )
+                            print(f"[DBController] LLM row generation error: {e}")
 
                     limit_match = re.search(r"LIMIT\s+(\d+)", query, re.IGNORECASE)
                     if limit_match:
@@ -680,6 +757,7 @@ class ShopHubDBController:
         """Execute RL-selected action — unchanged from original."""
         query = event.get("query", "")
         intent = self._classify_query(query)
+        query_upper = query.upper()
 
         if action == "REALISTIC_RESPONSE":
             return await self._original_query_handler(session_id, event)
@@ -764,21 +842,10 @@ class ShopHubDBController:
 
         elif action == "FAKE_VULNERABILITY":
             query_lower = query.lower()
+            # Keep schema enumeration truthful so SHOW TABLES, DESC and SELECT
+            # agree with one another across a session.
             if "information_schema" in query_lower or "show tables" in query_lower:
-                fake_schema = {
-                    "columns": ["table_name"],
-                    "rows": [
-                        ["admin_users"],
-                        ["api_keys"],
-                        ["backup_credentials"],
-                        ["credit_cards"],
-                        ["session_tokens"],
-                        ["user_passwords"],
-                    ],
-                }
-                return await self._finalize_query(
-                    session_id, query, intent, fake_schema, 0.1
-                )
+                return await self._original_query_handler(session_id, event)
             if "mysql.user" in query_lower:
                 fake_mysql_users = {
                     "columns": ["user", "host", "authentication_string"],
@@ -793,6 +860,13 @@ class ShopHubDBController:
             return await self._original_query_handler(session_id, event)
 
         elif action == "TERMINATE_SESSION":
+            # Abrupt disconnects during metadata exploration feel broken and cause
+            # client reconnect loops. Reserve termination for more invasive queries.
+            if intent in {"describe", "use_db"} or "SHOW TABLES" in query_upper:
+                response = await self._original_query_handler(session_id, event)
+                response["delay"] = max(response.get("delay", 0.0), 0.05)
+                return response
+
             if len(self._get_session(session_id).get("query_history", [])) < 5:
                 response = await self._original_query_handler(session_id, event)
                 response["delay"] = max(response.get("delay", 0.0), 0.1)
